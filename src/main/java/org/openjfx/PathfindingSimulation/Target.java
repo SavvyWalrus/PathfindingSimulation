@@ -10,7 +10,7 @@ import javafx.scene.shape.Rectangle;
 public class Target extends Circle {
 	private static final int TARGET_BORDER_WIDTH = 3;
 	private static double targetRadius;
-	private static int gridSquareSize;
+	private static int visualGridSquareSize;
 	private GridNode goalNode = null;
 	
 	// Movement variables
@@ -22,24 +22,24 @@ public class Target extends Circle {
 	private int xGridPos;
 	private int yGridPos;
 	
-	public Target(int GRID_SQUARE_SIZE) {
-		gridSquareSize = GRID_SQUARE_SIZE;
-		targetRadius = (gridSquareSize / 2) - (TARGET_BORDER_WIDTH);
+	public Target(int VISUAL_GRID_SQUARE_SIZE, int PATH_GRID_SQUARE_SIZE) {
+		visualGridSquareSize = VISUAL_GRID_SQUARE_SIZE;
+		targetRadius = (visualGridSquareSize / 2) - (TARGET_BORDER_WIDTH);
 	}
 	
     // Creates the target and randomly sets its position
-    public boolean initializeTarget(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int GRID_SQUARE_SIZE, List<Rectangle> obstacles, Field field, Grid grid) {
+    public boolean initializeTarget(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int VISUAL_GRID_SQUARE_SIZE, int PATH_GRID_SQUARE_SIZE, List<Rectangle> obstacles, Field field, Grid grid) {
     	Random rand = new Random();
-    	int numXSquares = WINDOW_SIZE_WIDTH / GRID_SQUARE_SIZE;
+    	int numXSquares = WINDOW_SIZE_WIDTH / VISUAL_GRID_SQUARE_SIZE;
     	int attemptLimit = 10;
     	int i = 0;
     	boolean failedAttempt = true;
     	
     	while(i < attemptLimit) {
-    		xGridPos = rand.nextInt(numXSquares - 10) + 5;
-    		yGridPos = rand.nextInt(10) + 2;
-    		double xPos = (gridSquareSize * xGridPos + gridSquareSize / 2);
-            double yPos = (gridSquareSize * yGridPos + gridSquareSize / 2);
+    		xGridPos = PATH_GRID_SQUARE_SIZE * (rand.nextInt(numXSquares - 10) + 5);
+    		yGridPos = PATH_GRID_SQUARE_SIZE * (rand.nextInt(10) + 2);
+    		double xPos = PATH_GRID_SQUARE_SIZE * xGridPos + VISUAL_GRID_SQUARE_SIZE / 2;
+            double yPos = PATH_GRID_SQUARE_SIZE * yGridPos + VISUAL_GRID_SQUARE_SIZE / 2;
             
             setCenterX(xPos);
             setCenterY(yPos);

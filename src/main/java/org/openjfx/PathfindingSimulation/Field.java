@@ -24,17 +24,18 @@ public class Field extends Pane {
 	private static final int WINDOW_SIZE_HEIGHT = 1000;
 	
 	// Size of background grid squares
-	private static final int GRID_SQUARE_SIZE = 25;
+	private static final int VISUAL_SQUARE_SIZE = 25;
+	private static final int PATH_GRID_SQUARE_SIZE = 5;
 	
-	// Number of grid squares
-	private static final int NUM_X_SQUARES = WINDOW_SIZE_WIDTH / GRID_SQUARE_SIZE;
-	private static final int NUM_Y_SQUARES = WINDOW_SIZE_HEIGHT / GRID_SQUARE_SIZE;
+	// Number of visual grid squares
+	private static final int NUM_X_SQUARES = WINDOW_SIZE_WIDTH / VISUAL_SQUARE_SIZE;
+	private static final int NUM_Y_SQUARES = WINDOW_SIZE_HEIGHT / VISUAL_SQUARE_SIZE;
 	
 	// Thickness of borders
 	private static final int OBSTACLE_BORDER_WIDTH = 6;
 	
 	// Size of target/goal
-	private static final double TARGET_RADIUS = (GRID_SQUARE_SIZE / 2) - (3);
+	private static final double TARGET_RADIUS = (VISUAL_SQUARE_SIZE / 2) - (3);
 	
 	// Variable representations
 	private static final int LOSE = 1;
@@ -47,7 +48,7 @@ public class Field extends Pane {
     Player player = new Player();
     
     // Initializes the target object with no properties
-    Target target = new Target(GRID_SQUARE_SIZE);
+    Target target = new Target(VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_SIZE);
     
     // List of obstacle objects
     List<Rectangle> obstacles = new ArrayList<>();
@@ -75,9 +76,9 @@ public class Field extends Pane {
         	this.getChildren().clear();
         	this.getChildren().addAll(background);
             initializeObstacles();
-            success = target.initializeTarget(WINDOW_SIZE_WIDTH, WINDOW_SIZE_HEIGHT, GRID_SQUARE_SIZE, obstacles, this, grid);
+            success = target.initializeTarget(WINDOW_SIZE_WIDTH, WINDOW_SIZE_HEIGHT, VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_SIZE, obstacles, this, grid);
             if (success) {
-            	success = player.initializePlayer(WINDOW_SIZE_WIDTH, WINDOW_SIZE_HEIGHT, GRID_SQUARE_SIZE, obstacles, this);
+            	success = player.initializePlayer(WINDOW_SIZE_WIDTH, WINDOW_SIZE_HEIGHT, VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_SIZE, obstacles, this);
             }
         }
 		
@@ -86,7 +87,7 @@ public class Field extends Pane {
         	System.exit(0);
         }
 		
-		updatePath();
+		//updatePath();
 	}
     
 	// Sets up the checkerboard background
@@ -96,22 +97,22 @@ public class Field extends Pane {
     	for (int i = 0; i < NUM_X_SQUARES; ++i) {
     		for (int j = i % 2; j < NUM_Y_SQUARES; j+=2) {
     			Rectangle checkerboard = new Rectangle();
-        		checkerboard.setX(i * GRID_SQUARE_SIZE);
-        		checkerboard.setY(j * GRID_SQUARE_SIZE);
-        		checkerboard.setWidth(GRID_SQUARE_SIZE);
-        		checkerboard.setHeight(GRID_SQUARE_SIZE);
+        		checkerboard.setX(i * VISUAL_SQUARE_SIZE);
+        		checkerboard.setY(j * VISUAL_SQUARE_SIZE);
+        		checkerboard.setWidth(VISUAL_SQUARE_SIZE);
+        		checkerboard.setHeight(VISUAL_SQUARE_SIZE);
         		checkerboard.setFill(Color.LAVENDER);
         		background.add(checkerboard);
     		}
     	}
     	
     	Rectangle border = new Rectangle();
-    	border.setX(GRID_SQUARE_SIZE / 2);
-    	border.setY(GRID_SQUARE_SIZE / 2);
-    	border.setWidth(WINDOW_SIZE_WIDTH - GRID_SQUARE_SIZE);
-    	border.setHeight(WINDOW_SIZE_HEIGHT - GRID_SQUARE_SIZE);
+    	border.setX(VISUAL_SQUARE_SIZE / 2);
+    	border.setY(VISUAL_SQUARE_SIZE / 2);
+    	border.setWidth(WINDOW_SIZE_WIDTH - VISUAL_SQUARE_SIZE);
+    	border.setHeight(WINDOW_SIZE_HEIGHT - VISUAL_SQUARE_SIZE);
     	border.setStroke(Color.CRIMSON);
-    	border.setStrokeWidth(GRID_SQUARE_SIZE);
+    	border.setStrokeWidth(VISUAL_SQUARE_SIZE);
     	border.setFill(Color.TRANSPARENT);
     	background.add(border);
     	
@@ -128,11 +129,11 @@ public class Field extends Pane {
     	
     	while(obstacles.size() < numObstacles) {
     		int obstacleGridSize = rand.nextInt(MAX_OBSTACLE_SIZE - MIN_OBSTACLE_SIZE + 1) + MIN_OBSTACLE_SIZE;
-            int obstacleActualSize = GRID_SQUARE_SIZE * obstacleGridSize - OBSTACLE_BORDER_WIDTH;
-            int xGridPos = rand.nextInt(NUM_X_SQUARES - (obstacleGridSize) - 2);
-            int yGridPos = rand.nextInt(NUM_Y_SQUARES - (obstacleGridSize) - 2);
-            int xPos = GRID_SQUARE_SIZE * xGridPos + (OBSTACLE_BORDER_WIDTH / 2) + GRID_SQUARE_SIZE;
-            int yPos = GRID_SQUARE_SIZE * yGridPos + (OBSTACLE_BORDER_WIDTH / 2) + GRID_SQUARE_SIZE;
+            int obstacleActualSize = VISUAL_SQUARE_SIZE * obstacleGridSize - OBSTACLE_BORDER_WIDTH;
+            int xGridPos = PATH_GRID_SQUARE_SIZE * rand.nextInt(NUM_X_SQUARES - (obstacleGridSize) - 1);
+            int yGridPos = PATH_GRID_SQUARE_SIZE * rand.nextInt(NUM_Y_SQUARES - (obstacleGridSize) - 1);
+            int xPos = PATH_GRID_SQUARE_SIZE * xGridPos + (OBSTACLE_BORDER_WIDTH / 2) + VISUAL_SQUARE_SIZE;
+            int yPos = PATH_GRID_SQUARE_SIZE * yGridPos + (OBSTACLE_BORDER_WIDTH / 2) + VISUAL_SQUARE_SIZE;
 
             Rectangle newObstacle = new Rectangle(xPos, yPos, obstacleActualSize, obstacleActualSize);
 
@@ -161,21 +162,21 @@ public class Field extends Pane {
     }
     
     // Updates the player's position
-    public boolean updatePlayerPosition() {
+    public boolean updatePlayerPosition(double timestep) {
         if (!keysPressed.isEmpty()) {
         	for (KeyCode keyCode : keysPressed) {
                 switch (keyCode) {
                     case UP:
-                    	player.moveUp();
+                    	player.moveUp(timestep);
                     	break;
                     case DOWN:
-                    	player.moveDown();
+                    	player.moveDown(timestep);
                     	break;
                     case LEFT:
-                    	player.moveLeft();
+                    	player.moveLeft(timestep);
                     	break;
                     case RIGHT:
-                    	player.moveRight();
+                    	player.moveRight(timestep);
                     	break;
                 }
             }
@@ -186,14 +187,14 @@ public class Field extends Pane {
         }
     }
     
-    public boolean updateComputerPosition() {
+    public boolean updateComputerPosition(double timestep) {
         if (path == null || path.isEmpty()) {
             return false; // No path to follow
         }
 
         // Calculate the target position in pixels
-        double targetX = path.get(0).getXPos() * GRID_SQUARE_SIZE + player.getPlayerBorderWidth();
-        double targetY = path.get(0).getYPos() * GRID_SQUARE_SIZE + player.getPlayerBorderWidth();
+        double targetX = path.get(0).getXPos() * PATH_GRID_SQUARE_SIZE + player.getPlayerBorderWidth();
+        double targetY = path.get(0).getYPos() * PATH_GRID_SQUARE_SIZE + player.getPlayerBorderWidth();
 
         // Current position including translations
         double currentX = player.getX() + player.getTranslateX();
@@ -209,15 +210,15 @@ public class Field extends Pane {
         
         // Apply movement and speed
 	    if (!hasReachedX && dx > 0) {
-	    	player.moveRight();
+	    	player.moveRight(timestep);
 	    } else if (!hasReachedX && dx < 0) {
-	    	player.moveLeft();
+	    	player.moveLeft(timestep);
 	    }
     	
     	if (!hasReachedY && dy < 0) {
-    		player.moveUp();
+    		player.moveUp(timestep);
     	} else if (!hasReachedY && dy > 0) {
-    		player.moveDown();
+    		player.moveDown(timestep);
     	}
 
         if (hasReachedX && hasReachedY) {
@@ -227,7 +228,7 @@ public class Field extends Pane {
             updatePath();
             
             // Optional path visualization
-            //if (path.size() > 1) initializePathVisualization();
+            if (path.size() > 1) initializePathVisualization();
         }
 
         return true; // Continuing movement
@@ -247,9 +248,9 @@ public class Field extends Pane {
         	}
         }
         
-        if(player.getX() + player.getTranslateX() >= WINDOW_SIZE_WIDTH - (2 * GRID_SQUARE_SIZE) || player.getX() + player.getTranslateX() <= GRID_SQUARE_SIZE) {
+        if(player.getX() + player.getTranslateX() >= WINDOW_SIZE_WIDTH - (2 * PATH_GRID_SQUARE_SIZE) || player.getX() + player.getTranslateX() <= PATH_GRID_SQUARE_SIZE) {
         	overlaps = true;
-        } else if(player.getY() + player.getTranslateY() >= WINDOW_SIZE_HEIGHT - (2 * GRID_SQUARE_SIZE) || player.getY() + player.getTranslateY() <= GRID_SQUARE_SIZE) {
+        } else if(player.getY() + player.getTranslateY() >= WINDOW_SIZE_HEIGHT - (2 * PATH_GRID_SQUARE_SIZE) || player.getY() + player.getTranslateY() <= PATH_GRID_SQUARE_SIZE) {
         	overlaps = true;
         }
         
@@ -283,10 +284,19 @@ public class Field extends Pane {
 		 for (GridNode node : path) {
 			 Circle point = new Circle();
 			 point.setRadius(TARGET_RADIUS / 3); point.setFill(Color.RED);
-			 point.setCenterX(node.getXPos() * GRID_SQUARE_SIZE + GRID_SQUARE_SIZE / 2);
-			 point.setCenterY(node.getYPos() * GRID_SQUARE_SIZE + GRID_SQUARE_SIZE / 2);
+			 point.setCenterX(node.getXPos() * PATH_GRID_SQUARE_SIZE + PATH_GRID_SQUARE_SIZE / 2);
+			 point.setCenterY(node.getYPos() * PATH_GRID_SQUARE_SIZE + PATH_GRID_SQUARE_SIZE / 2);
 			 point.setUserData("pathNode");
 			 this.getChildren().add(point);
 		 }
+    }
+    
+    public void checkFieldRefresh() {
+    	for (KeyCode keyCode : keysPressed) {
+        	switch (keyCode) {
+        		case SPACE:
+        			initializeField();
+        	}
+        }
     }
 }

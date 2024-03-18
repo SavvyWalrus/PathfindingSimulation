@@ -7,12 +7,11 @@ import javafx.scene.shape.*;
 
 public class Player extends Rectangle {
 	// Movement variables
-	private static final double MAX_SPEED = 1.5;
-	private static final double ACCELERATION = 0.2;
+	private static final int MAX_SPEED = 150;
+	private static final int ACCELERATION = 2;
 	private double verticalMomentum = 0.0;
 	private double horizontalMomentum = 0.0;
 	
-	private static final int PLAYER_WIDTH = 25;
 	private static final int PLAYER_BORDER_WIDTH = 3;
 	private int xGridPos;
 	private int yGridPos;
@@ -23,10 +22,10 @@ public class Player extends Rectangle {
 	}
 	
     // Creates the player object and randomly sets its position
-    public boolean initializePlayer(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int GRID_SQUARE_SIZE, List<Rectangle> obstacles, Field field) {
+    public boolean initializePlayer(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int VISUAL_GRID_SQUARE_SIZE, int PATH_GRID_SQUARE_SIZE, List<Rectangle> obstacles, Field field) {
     	Random rand = new Random();
-    	int numXSquares = WINDOW_SIZE_WIDTH / GRID_SQUARE_SIZE;
-    	int numYSquares = WINDOW_SIZE_HEIGHT / GRID_SQUARE_SIZE;
+    	int numXSquares = WINDOW_SIZE_WIDTH / VISUAL_GRID_SQUARE_SIZE;
+    	int numYSquares = WINDOW_SIZE_HEIGHT / VISUAL_GRID_SQUARE_SIZE;
     	int attemptLimit = 10;
     	int i = 0;
     	boolean failedAttempt = true;
@@ -36,15 +35,15 @@ public class Player extends Rectangle {
         setTranslateY(0);
     	
     	while(i < attemptLimit) {
-    		setXGridPos(rand.nextInt(numXSquares - 10) + 5);
-    		setYGridPos(rand.nextInt(10) + (numYSquares - 12));
-            int xPos = GRID_SQUARE_SIZE * getXGridPos() + PLAYER_BORDER_WIDTH;
-            int yPos = GRID_SQUARE_SIZE * getYGridPos() + PLAYER_BORDER_WIDTH;
+    		setXGridPos(PATH_GRID_SQUARE_SIZE * (rand.nextInt(numXSquares - 10) + 5));
+    		setYGridPos(PATH_GRID_SQUARE_SIZE * (rand.nextInt(10) + (numYSquares - 12)));
+            int xPos = PATH_GRID_SQUARE_SIZE * getXGridPos() + PLAYER_BORDER_WIDTH;
+            int yPos = PATH_GRID_SQUARE_SIZE * getYGridPos() + PLAYER_BORDER_WIDTH;
             
-            setX(xPos - GRID_SQUARE_SIZE);
-            setY(yPos - GRID_SQUARE_SIZE);
-            setWidth((getPlayerWidth() - PLAYER_BORDER_WIDTH) * 3);
-            setHeight((getPlayerWidth() - PLAYER_BORDER_WIDTH) * 3);
+            setX(xPos - VISUAL_GRID_SQUARE_SIZE);
+            setY(yPos - VISUAL_GRID_SQUARE_SIZE);
+            setWidth((VISUAL_GRID_SQUARE_SIZE - PLAYER_BORDER_WIDTH) * 3);
+            setHeight((VISUAL_GRID_SQUARE_SIZE - PLAYER_BORDER_WIDTH) * 3);
             
             boolean overlaps = false;
             for(Rectangle currentObstacle : obstacles) {
@@ -57,8 +56,8 @@ public class Player extends Rectangle {
             if(!overlaps) {
             	setX(xPos);
             	setY(yPos);
-            	setWidth(getPlayerWidth() - 2 * PLAYER_BORDER_WIDTH);
-            	setHeight(getPlayerWidth() - 2 * PLAYER_BORDER_WIDTH);
+            	setWidth(VISUAL_GRID_SQUARE_SIZE - 2 * PLAYER_BORDER_WIDTH);
+            	setHeight(VISUAL_GRID_SQUARE_SIZE - 2 * PLAYER_BORDER_WIDTH);
             	setFill(Color.RED);
             	setStroke(Color.BLACK);
             	setStrokeWidth(PLAYER_BORDER_WIDTH);
@@ -73,24 +72,24 @@ public class Player extends Rectangle {
     	return !failedAttempt;
     }
 	
-	public void moveUp() {
+	public void moveUp(double timestep) {
 		increaseVerticalMomentum();
-    	setTranslateY(getTranslateY() + getVerticalMomentum());
+    	setTranslateY(getTranslateY() + getVerticalMomentum() * timestep);
 	}
 	
-	public void moveDown() {
+	public void moveDown(double timestep) {
 		decreaseVerticalMomentum();
-    	setTranslateY(getTranslateY() + getVerticalMomentum());
+    	setTranslateY(getTranslateY() + getVerticalMomentum() * timestep);
 	}
 	
-	public void moveLeft() {
+	public void moveLeft(double timestep) {
 		decreaseHorizontalMomentum();
-    	setTranslateX(getTranslateX() + getHorizontalMomentum());
+    	setTranslateX(getTranslateX() + getHorizontalMomentum() * timestep);
 	}
 	
-	public void moveRight() {
+	public void moveRight(double timestep) {
 		increaseHorizontalMomentum();
-    	setTranslateX(getTranslateX() + getHorizontalMomentum());
+    	setTranslateX(getTranslateX() + getHorizontalMomentum() * timestep);
 	}
 	
 	public void increaseVerticalMomentum() {
@@ -147,10 +146,6 @@ public class Player extends Rectangle {
 	
 	public void setHorizontalMomentum(double newMomentum) {
 		horizontalMomentum = newMomentum;
-	}
-	
-	public int getPlayerWidth() {
-		return PLAYER_WIDTH;
 	}
 	
 	public int getPlayerBorderWidth() {

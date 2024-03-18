@@ -38,30 +38,47 @@ public class MainApplication extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
         
-        // Player movement loop
+     // Player movement loop
         new AnimationTimer() {
+            private long lastTime = 0;
+            
             @Override
             public void handle(long now) {
-                if(gameField.updateComputerPosition()) {
-                	int collisionType = gameField.checkPlayerCollision();
+                if (lastTime == 0) {
+                    lastTime = now;
+                    return;
+                }
+                
+                // Calculate time step in seconds
+                double timeStep = (now - lastTime) / 1_000_000_000.0;
+                if (timeStep <= 0 || timeStep > 1.0) {
+                    timeStep = 0.001;
+                }
+                
+                // Debug function (SPACEBAR)
+                gameField.checkFieldRefresh();
+                
+                if (gameField.updateComputerPosition(timeStep)) {
+                    int collisionType = gameField.checkPlayerCollision();
                     
                     switch(collisionType) {
-                    	case 0:
-                    		break;
-                    	case LOSE:
-                    		gameField.clearMomentum();
-                    		gameField.initializeField();
-                    		//gameMenu.incrementDeaths();
-                    		break;
-                    	case WIN:
-                    		gameField.clearMomentum();
-                    		gameField.initializeField();
-                    		//gameMenu.incrementScore();
-                    		break;
-                    	default:
-                    		break;
+                        case 0:
+                            break;
+                        case LOSE:
+                            gameField.clearMomentum();
+                            gameField.initializeField();
+                            //gameMenu.incrementDeaths();
+                            break;
+                        case WIN:
+                            gameField.clearMomentum();
+                            gameField.initializeField();
+                            //gameMenu.incrementScore();
+                            break;
+                        default:
+                            break;
                     }
                 }
+                lastTime = now;
             }
         }.start();
     }
