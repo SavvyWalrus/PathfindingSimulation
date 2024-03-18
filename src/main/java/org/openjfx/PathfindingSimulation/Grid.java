@@ -118,6 +118,10 @@ public class Grid {
     
     // Precalculated distance
     private double calculateDistance(GridNode start, GridNode destination) {
+    	if (destination == null) {
+    		System.out.println("NULL POSITION ON TARGET");
+    		return 0;
+    	}
     	if (Math.abs(start.getXPos() - destination.getXPos()) == Math.abs(start.getYPos() - destination.getYPos())) return 1.4;
     	else return 1.0;
     }

@@ -28,9 +28,9 @@ public class Target extends Circle {
 	}
 	
     // Creates the target and randomly sets its position
-    public boolean initializeTarget(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int VISUAL_GRID_SQUARE_SIZE, int PATH_GRID_SQUARE_SIZE, List<Rectangle> obstacles, Field field, Grid grid) {
+    public boolean initializeTarget(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int VISUAL_SQUARE_SIZE, int PATH_GRID_SQUARE_SIZE, List<Rectangle> obstacles, Field field, Grid grid) {
     	Random rand = new Random();
-    	int numXSquares = WINDOW_SIZE_WIDTH / VISUAL_GRID_SQUARE_SIZE;
+    	int numXSquares = WINDOW_SIZE_WIDTH / VISUAL_SQUARE_SIZE;
     	int attemptLimit = 10;
     	int i = 0;
     	boolean failedAttempt = true;
@@ -38,8 +38,8 @@ public class Target extends Circle {
     	while(i < attemptLimit) {
     		xGridPos = PATH_GRID_SQUARE_SIZE * (rand.nextInt(numXSquares - 10) + 5);
     		yGridPos = PATH_GRID_SQUARE_SIZE * (rand.nextInt(10) + 2);
-    		double xPos = PATH_GRID_SQUARE_SIZE * xGridPos + VISUAL_GRID_SQUARE_SIZE / 2;
-            double yPos = PATH_GRID_SQUARE_SIZE * yGridPos + VISUAL_GRID_SQUARE_SIZE / 2;
+    		double xPos = xGridPos / PATH_GRID_SQUARE_SIZE * VISUAL_SQUARE_SIZE + VISUAL_SQUARE_SIZE / 2;
+            double yPos = yGridPos / PATH_GRID_SQUARE_SIZE * VISUAL_SQUARE_SIZE + VISUAL_SQUARE_SIZE / 2;
             
             setCenterX(xPos);
             setCenterY(yPos);

@@ -22,10 +22,10 @@ public class Player extends Rectangle {
 	}
 	
     // Creates the player object and randomly sets its position
-    public boolean initializePlayer(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int VISUAL_GRID_SQUARE_SIZE, int PATH_GRID_SQUARE_SIZE, List<Rectangle> obstacles, Field field) {
+    public boolean initializePlayer(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int VISUAL_SQUARE_SIZE, int PATH_GRID_SQUARE_NUM, List<Rectangle> obstacles, Field field) {
     	Random rand = new Random();
-    	int numXSquares = WINDOW_SIZE_WIDTH / VISUAL_GRID_SQUARE_SIZE;
-    	int numYSquares = WINDOW_SIZE_HEIGHT / VISUAL_GRID_SQUARE_SIZE;
+    	int numXSquares = WINDOW_SIZE_WIDTH / VISUAL_SQUARE_SIZE;
+    	int numYSquares = WINDOW_SIZE_HEIGHT / VISUAL_SQUARE_SIZE;
     	int attemptLimit = 10;
     	int i = 0;
     	boolean failedAttempt = true;
@@ -35,15 +35,15 @@ public class Player extends Rectangle {
         setTranslateY(0);
     	
     	while(i < attemptLimit) {
-    		setXGridPos(PATH_GRID_SQUARE_SIZE * (rand.nextInt(numXSquares - 10) + 5));
-    		setYGridPos(PATH_GRID_SQUARE_SIZE * (rand.nextInt(10) + (numYSquares - 12)));
-            int xPos = PATH_GRID_SQUARE_SIZE * getXGridPos() + PLAYER_BORDER_WIDTH;
-            int yPos = PATH_GRID_SQUARE_SIZE * getYGridPos() + PLAYER_BORDER_WIDTH;
+    		setXGridPos(PATH_GRID_SQUARE_NUM * (rand.nextInt(numXSquares - 10) + 5));
+    		setYGridPos(PATH_GRID_SQUARE_NUM * (rand.nextInt(10) + (numYSquares - 12)));
+            int xPos = getXGridPos() / PATH_GRID_SQUARE_NUM * VISUAL_SQUARE_SIZE + PLAYER_BORDER_WIDTH;
+            int yPos = getYGridPos() / PATH_GRID_SQUARE_NUM * VISUAL_SQUARE_SIZE + PLAYER_BORDER_WIDTH;
             
-            setX(xPos - VISUAL_GRID_SQUARE_SIZE);
-            setY(yPos - VISUAL_GRID_SQUARE_SIZE);
-            setWidth((VISUAL_GRID_SQUARE_SIZE - PLAYER_BORDER_WIDTH) * 3);
-            setHeight((VISUAL_GRID_SQUARE_SIZE - PLAYER_BORDER_WIDTH) * 3);
+            setX(xPos - VISUAL_SQUARE_SIZE);
+            setY(yPos - VISUAL_SQUARE_SIZE);
+            setWidth((VISUAL_SQUARE_SIZE - PLAYER_BORDER_WIDTH) * 3);
+            setHeight((VISUAL_SQUARE_SIZE - PLAYER_BORDER_WIDTH) * 3);
             
             boolean overlaps = false;
             for(Rectangle currentObstacle : obstacles) {
@@ -56,8 +56,8 @@ public class Player extends Rectangle {
             if(!overlaps) {
             	setX(xPos);
             	setY(yPos);
-            	setWidth(VISUAL_GRID_SQUARE_SIZE - 2 * PLAYER_BORDER_WIDTH);
-            	setHeight(VISUAL_GRID_SQUARE_SIZE - 2 * PLAYER_BORDER_WIDTH);
+            	setWidth(VISUAL_SQUARE_SIZE - 2 * PLAYER_BORDER_WIDTH);
+            	setHeight(VISUAL_SQUARE_SIZE - 2 * PLAYER_BORDER_WIDTH);
             	setFill(Color.RED);
             	setStroke(Color.BLACK);
             	setStrokeWidth(PLAYER_BORDER_WIDTH);

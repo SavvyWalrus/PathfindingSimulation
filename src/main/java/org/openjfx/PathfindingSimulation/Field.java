@@ -25,7 +25,9 @@ public class Field extends Pane {
 	
 	// Size of background grid squares
 	private static final int VISUAL_SQUARE_SIZE = 25;
-	private static final int PATH_GRID_SQUARE_SIZE = 5;
+	
+	// Density of path grid per visual square (ie. Number of squares per square)
+	private static final int PATH_GRID_SQUARE_NUM = 2;
 	
 	// Number of visual grid squares
 	private static final int NUM_X_SQUARES = WINDOW_SIZE_WIDTH / VISUAL_SQUARE_SIZE;
@@ -41,6 +43,12 @@ public class Field extends Pane {
 	private static final int LOSE = 1;
 	private static final int WIN = 2;
 	
+	private static final boolean SHOW_PATH_VISUALIZATION = true;
+	private static final boolean SHOW_OBSTACLE_GRID_POSITION = true;
+	private static final boolean RECTANGLE_VISUALIZATION = true;
+	private static final boolean DOT_VISUALIZATION = false;
+	private static final boolean PATHFINDING_ACTIVE = false;
+	
     // Initializes a Random object
     Random rand = new Random();
     
@@ -48,7 +56,7 @@ public class Field extends Pane {
     Player player = new Player();
     
     // Initializes the target object with no properties
-    Target target = new Target(VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_SIZE);
+    Target target = new Target(VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_NUM);
     
     // List of obstacle objects
     List<Rectangle> obstacles = new ArrayList<>();
@@ -60,7 +68,7 @@ public class Field extends Pane {
     List<Node> background = initializeBackground();
     
     // Grid representation for pathfinding
-    Grid grid = new Grid(NUM_X_SQUARES, NUM_Y_SQUARES);
+    Grid grid = new Grid(NUM_X_SQUARES * PATH_GRID_SQUARE_NUM, NUM_Y_SQUARES * PATH_GRID_SQUARE_NUM);
     GridNode playerPos;
     List<GridNode> path;
 	
@@ -76,9 +84,9 @@ public class Field extends Pane {
         	this.getChildren().clear();
         	this.getChildren().addAll(background);
             initializeObstacles();
-            success = target.initializeTarget(WINDOW_SIZE_WIDTH, WINDOW_SIZE_HEIGHT, VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_SIZE, obstacles, this, grid);
+            success = target.initializeTarget(WINDOW_SIZE_WIDTH, WINDOW_SIZE_HEIGHT, VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_NUM, obstacles, this, grid);
             if (success) {
-            	success = player.initializePlayer(WINDOW_SIZE_WIDTH, WINDOW_SIZE_HEIGHT, VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_SIZE, obstacles, this);
+            	success = player.initializePlayer(WINDOW_SIZE_WIDTH, WINDOW_SIZE_HEIGHT, VISUAL_SQUARE_SIZE, PATH_GRID_SQUARE_NUM, obstacles, this);
             }
         }
 		
@@ -87,7 +95,8 @@ public class Field extends Pane {
         	System.exit(0);
         }
 		
-		//updatePath();
+		updatePath();
+		
 	}
     
 	// Sets up the checkerboard background
@@ -130,10 +139,10 @@ public class Field extends Pane {
     	while(obstacles.size() < numObstacles) {
     		int obstacleGridSize = rand.nextInt(MAX_OBSTACLE_SIZE - MIN_OBSTACLE_SIZE + 1) + MIN_OBSTACLE_SIZE;
             int obstacleActualSize = VISUAL_SQUARE_SIZE * obstacleGridSize - OBSTACLE_BORDER_WIDTH;
-            int xGridPos = PATH_GRID_SQUARE_SIZE * rand.nextInt(NUM_X_SQUARES - (obstacleGridSize) - 1);
-            int yGridPos = PATH_GRID_SQUARE_SIZE * rand.nextInt(NUM_Y_SQUARES - (obstacleGridSize) - 1);
-            int xPos = PATH_GRID_SQUARE_SIZE * xGridPos + (OBSTACLE_BORDER_WIDTH / 2) + VISUAL_SQUARE_SIZE;
-            int yPos = PATH_GRID_SQUARE_SIZE * yGridPos + (OBSTACLE_BORDER_WIDTH / 2) + VISUAL_SQUARE_SIZE;
+            int xGridPos = PATH_GRID_SQUARE_NUM * rand.nextInt(NUM_X_SQUARES - (obstacleGridSize) - 1);
+            int yGridPos = PATH_GRID_SQUARE_NUM * rand.nextInt(NUM_Y_SQUARES - (obstacleGridSize) - 1);
+            int xPos = xGridPos / PATH_GRID_SQUARE_NUM * VISUAL_SQUARE_SIZE + (OBSTACLE_BORDER_WIDTH / 2) + VISUAL_SQUARE_SIZE;
+            int yPos = yGridPos / PATH_GRID_SQUARE_NUM * VISUAL_SQUARE_SIZE + (OBSTACLE_BORDER_WIDTH / 2) + VISUAL_SQUARE_SIZE;
 
             Rectangle newObstacle = new Rectangle(xPos, yPos, obstacleActualSize, obstacleActualSize);
 
@@ -152,9 +161,13 @@ public class Field extends Pane {
                 obstacles.add(newObstacle);
                 this.getChildren().add(newObstacle);
                 
-                for(int i = 0; i < obstacleGridSize; ++i) {
-                	for(int j = 0; j < obstacleGridSize; ++j) {
-                		grid.setObstacle(xGridPos + 1 + i, yGridPos + 1 + j, true);
+                for(int x = 0; x < obstacleGridSize; ++x) {
+                	for(int y = 0; y < obstacleGridSize; ++y) {
+            			for (int subY = 0; subY < PATH_GRID_SQUARE_NUM; ++subY) {
+            				for (int subX = 0; subX < PATH_GRID_SQUARE_NUM; ++subX) {
+            					grid.setObstacle(xGridPos + 1 + x * PATH_GRID_SQUARE_NUM + subX, yGridPos + 1 + y * PATH_GRID_SQUARE_NUM + subY, true);
+            				}
+            			}
                 	}
                 }
             }
@@ -188,13 +201,13 @@ public class Field extends Pane {
     }
     
     public boolean updateComputerPosition(double timestep) {
-        if (path == null || path.isEmpty()) {
+        if (!PATHFINDING_ACTIVE || path == null || path.isEmpty()) {
             return false; // No path to follow
         }
 
         // Calculate the target position in pixels
-        double targetX = path.get(0).getXPos() * PATH_GRID_SQUARE_SIZE + player.getPlayerBorderWidth();
-        double targetY = path.get(0).getYPos() * PATH_GRID_SQUARE_SIZE + player.getPlayerBorderWidth();
+        double targetX = path.get(0).getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + player.getPlayerBorderWidth();
+        double targetY = path.get(0).getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + player.getPlayerBorderWidth();
 
         // Current position including translations
         double currentX = player.getX() + player.getTranslateX();
@@ -226,9 +239,6 @@ public class Field extends Pane {
             player.setXGridPos(path.get(1).getXPos());
             player.setYGridPos(path.get(1).getYPos());
             updatePath();
-            
-            // Optional path visualization
-            if (path.size() > 1) initializePathVisualization();
         }
 
         return true; // Continuing movement
@@ -237,6 +247,10 @@ public class Field extends Pane {
     public void updatePath() {
     	playerPos = new GridNode(player.getXGridPos(), player.getYGridPos(), true);
     	path = grid.findPath(playerPos, target.getGoalNode());
+    	
+    	// Optional path and obstacle visualization
+    	if (SHOW_OBSTACLE_GRID_POSITION) initializeObstacleGridVisualization();
+        if (SHOW_PATH_VISUALIZATION) initializePathVisualization();
     }
     
     public int checkPlayerCollision() {
@@ -248,9 +262,9 @@ public class Field extends Pane {
         	}
         }
         
-        if(player.getX() + player.getTranslateX() >= WINDOW_SIZE_WIDTH - (2 * PATH_GRID_SQUARE_SIZE) || player.getX() + player.getTranslateX() <= PATH_GRID_SQUARE_SIZE) {
+        if(player.getX() + player.getTranslateX() >= WINDOW_SIZE_WIDTH - (2 * PATH_GRID_SQUARE_NUM) || player.getX() + player.getTranslateX() <= PATH_GRID_SQUARE_NUM) {
         	overlaps = true;
-        } else if(player.getY() + player.getTranslateY() >= WINDOW_SIZE_HEIGHT - (2 * PATH_GRID_SQUARE_SIZE) || player.getY() + player.getTranslateY() <= PATH_GRID_SQUARE_SIZE) {
+        } else if(player.getY() + player.getTranslateY() >= WINDOW_SIZE_HEIGHT - (2 * PATH_GRID_SQUARE_NUM) || player.getY() + player.getTranslateY() <= PATH_GRID_SQUARE_NUM) {
         	overlaps = true;
         }
         
@@ -277,18 +291,77 @@ public class Field extends Pane {
     }
     
     public void initializePathVisualization() {
+    	// Aborts if no path exists
+    	if (path.isEmpty()) return;
+    	
     	// Remove previous path visualization
     	this.getChildren().removeIf(node -> "pathNode".equals(node.getUserData()));
     	
-    	// Visualization
-		 for (GridNode node : path) {
-			 Circle point = new Circle();
-			 point.setRadius(TARGET_RADIUS / 3); point.setFill(Color.RED);
-			 point.setCenterX(node.getXPos() * PATH_GRID_SQUARE_SIZE + PATH_GRID_SQUARE_SIZE / 2);
-			 point.setCenterY(node.getYPos() * PATH_GRID_SQUARE_SIZE + PATH_GRID_SQUARE_SIZE / 2);
-			 point.setUserData("pathNode");
-			 this.getChildren().add(point);
-		 }
+    	// Dot Visualization
+    	if (DOT_VISUALIZATION) {
+    		for (GridNode node : path) {
+    			Circle point = new Circle();
+    			point.setRadius(TARGET_RADIUS / 3);
+    			point.setFill(Color.GREEN);
+    			point.setCenterX(node.getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+    			point.setCenterY(node.getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+    			point.setUserData("pathNode");
+    			this.getChildren().add(point);
+    		}
+    	}
+    	
+		// Rectangle visualization
+    	if (RECTANGLE_VISUALIZATION) {
+    		for (GridNode node : path) {
+    			Rectangle rect = new Rectangle();
+    			rect.setWidth(VISUAL_SQUARE_SIZE);
+    			rect.setHeight(VISUAL_SQUARE_SIZE);
+    			rect.setFill(Color.GREEN);
+    			rect.setX(node.getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
+    			rect.setY(node.getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
+    			rect.setUserData("pathNode");
+    			this.getChildren().add(rect);
+    		}
+    	}
+    }
+    
+    public void initializeObstacleGridVisualization() {
+    	// Remove previous obstacle visualization
+    	this.getChildren().removeIf(node -> "obstacleNode".equals(node.getUserData()));
+    	
+    	// Rectangle visualization
+    	if (RECTANGLE_VISUALIZATION) {
+    		for (int x = 0; x < NUM_X_SQUARES * PATH_GRID_SQUARE_NUM; ++x) {
+        		for (int y = 0; y < NUM_X_SQUARES * PATH_GRID_SQUARE_NUM; ++y) {
+        			if (!grid.getNode(x, y).isWalkable()) {
+        				Rectangle rect = new Rectangle();
+        				rect.setWidth(VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
+        				rect.setHeight(VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
+        				rect.setFill(Color.RED);
+        				rect.setX(grid.getNode(x, y).getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+        				rect.setY(grid.getNode(x, y).getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+        				rect.setUserData("obstacleNode");
+        				this.getChildren().add(rect);
+        			}
+        		}
+    		}
+    	}
+    	
+    	// Dot Visualization
+    	if (DOT_VISUALIZATION) {
+    		for (int x = 0; x < NUM_X_SQUARES * PATH_GRID_SQUARE_NUM; ++x) {
+        		for (int y = 0; y < NUM_X_SQUARES * PATH_GRID_SQUARE_NUM; ++y) {
+        			if (!grid.getNode(x, y).isWalkable()) {
+        				Circle point = new Circle();
+        				point.setRadius(TARGET_RADIUS / 3); point.setFill(Color.RED);
+        				point.setCenterX(grid.getNode(x, y).getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+        				point.setCenterY(grid.getNode(x, y).getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+        				point.setUserData("obstacleNode");
+        				this.getChildren().add(point);
+        			}
+        		}
+    		}
+    	}
     }
     
     public void checkFieldRefresh() {
