@@ -7,8 +7,8 @@ import javafx.scene.shape.*;
 
 public class Player extends Rectangle {
 	// Movement variables
-	private static final int MAX_SPEED = 150;
-	private static final int ACCELERATION = 2;
+	private static final int MAX_SPEED = 200;
+	private static final int ACCELERATION = 1;
 	private double verticalMomentum = 0.0;
 	private double horizontalMomentum = 0.0;
 	
@@ -90,6 +90,62 @@ public class Player extends Rectangle {
 	public void moveRight(double timestep) {
 		increaseHorizontalMomentum();
     	setTranslateX(getTranslateX() + getHorizontalMomentum() * timestep);
+	}
+	
+	public void moveTowards(double dx, double dy, double timestep) {
+	    double distance = Math.sqrt(dx * dx + dy * dy);
+	    
+	    if (distance <= MAX_SPEED * timestep) {
+	        // If the remaining distance is less than or equal to the maximum distance
+	        // that can be covered in one timestep at maximum speed,
+	        // simply move to the destination.
+	        setTranslateX(getTranslateX() + dx);
+	        setTranslateY(getTranslateY() + dy);
+	    } else {
+	        // Calculate the ratio of dx and dy relative to the total distance
+	        double ratioX = dx / distance;
+	        double ratioY = dy / distance;
+	        
+	        if (ratioX > 0) {
+	        	increaseHorizontalMomentum();
+	        } else if (ratioX < 0) {
+	        	decreaseHorizontalMomentum();
+	        } else {
+	        	if (getHorizontalMomentum() > 0) {
+	        		decreaseHorizontalMomentum();
+	        	} else if (getHorizontalMomentum() < 0) {
+	        		increaseHorizontalMomentum();
+	        	}
+	        }
+	        
+	        if (ratioY < 0) {
+	        	increaseVerticalMomentum();
+	        } else if (ratioY > 0) {
+	        	decreaseVerticalMomentum();
+	        } else {
+	        	if (getVerticalMomentum() > 0) {
+	        		decreaseVerticalMomentum();
+	        	} else if (getVerticalMomentum() < 0) {
+	        		increaseVerticalMomentum();
+	        	}
+	        }
+
+	        // Calculate the maximum distance that can be covered in each direction
+	        double maxDistanceX = ratioX * getHorizontalMomentum() * timestep;
+	        double maxDistanceY = ratioY * getVerticalMomentum() * timestep;
+
+	        // Determine the actual distance to move in each direction
+	        double moveX = Math.min(maxDistanceX, Math.abs(dx));
+	        double moveY = Math.min(maxDistanceY, Math.abs(dy));
+
+	        // Adjust the sign of the movement based on the direction
+	        moveX *= Math.signum(dx);
+	        moveY *= Math.signum(dy);
+
+	        // Move the object
+	        setTranslateX(getTranslateX() + moveX);
+	        setTranslateY(getTranslateY() + moveY);
+	    }
 	}
 	
 	public void increaseVerticalMomentum() {

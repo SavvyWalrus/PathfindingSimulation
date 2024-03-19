@@ -27,7 +27,8 @@ public class Field extends Pane {
 	private static final int VISUAL_SQUARE_SIZE = 25;
 	
 	// Density of path grid per visual square (ie. Number of squares per square)
-	private static final int PATH_GRID_SQUARE_NUM = 2;
+	// Causes instability at > 3
+	private static final int PATH_GRID_SQUARE_NUM = 3;
 	
 	// Number of visual grid squares
 	private static final int NUM_X_SQUARES = WINDOW_SIZE_WIDTH / VISUAL_SQUARE_SIZE;
@@ -43,11 +44,15 @@ public class Field extends Pane {
 	private static final int LOSE = 1;
 	private static final int WIN = 2;
 	
-	private static final boolean SHOW_PATH_VISUALIZATION = true;
-	private static final boolean SHOW_OBSTACLE_GRID_POSITION = true;
-	private static final boolean RECTANGLE_VISUALIZATION = true;
-	private static final boolean DOT_VISUALIZATION = false;
-	private static final boolean PATHFINDING_ACTIVE = false;
+	// Visualization settings
+	private static final boolean SHOW_PATH_VISUALIZATION = false;
+	private static final boolean SHOW_OBSTACLE_GRID_POSITION = false;
+	private static final boolean RECTANGLE_VISUALIZATION = false;
+	private static final boolean DOT_VISUALIZATION = true;
+	
+	// Pathfinding activation
+	private static final boolean PATHFINDING_ACTIVE = true;
+	private static boolean refreshToggle = true;
 	
     // Initializes a Random object
     Random rand = new Random();
@@ -161,10 +166,11 @@ public class Field extends Pane {
                 obstacles.add(newObstacle);
                 this.getChildren().add(newObstacle);
                 
-                for(int x = 0; x < obstacleGridSize; ++x) {
-                	for(int y = 0; y < obstacleGridSize; ++y) {
+                for(int x = 0; x <= obstacleGridSize; ++x) {
+                	for(int y = 0; y <= obstacleGridSize; ++y) {
             			for (int subY = 0; subY < PATH_GRID_SQUARE_NUM; ++subY) {
             				for (int subX = 0; subX < PATH_GRID_SQUARE_NUM; ++subX) {
+            					if (x == obstacleGridSize && subX == PATH_GRID_SQUARE_NUM - 1 || y == obstacleGridSize && subY == PATH_GRID_SQUARE_NUM - 1) continue;
             					grid.setObstacle(xGridPos + 1 + x * PATH_GRID_SQUARE_NUM + subX, yGridPos + 1 + y * PATH_GRID_SQUARE_NUM + subY, true);
             				}
             			}
@@ -222,17 +228,7 @@ public class Field extends Pane {
         boolean hasReachedY = Math.abs(currentY - targetY) <= 1;
         
         // Apply movement and speed
-	    if (!hasReachedX && dx > 0) {
-	    	player.moveRight(timestep);
-	    } else if (!hasReachedX && dx < 0) {
-	    	player.moveLeft(timestep);
-	    }
-    	
-    	if (!hasReachedY && dy < 0) {
-    		player.moveUp(timestep);
-    	} else if (!hasReachedY && dy > 0) {
-    		player.moveDown(timestep);
-    	}
+	    player.moveTowards(dx, dy, timestep);
 
         if (hasReachedX && hasReachedY) {
             //path.remove(0); // Move to the next node
@@ -303,8 +299,8 @@ public class Field extends Pane {
     			Circle point = new Circle();
     			point.setRadius(TARGET_RADIUS / 3);
     			point.setFill(Color.GREEN);
-    			point.setCenterX(node.getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
-    			point.setCenterY(node.getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+    			point.setCenterX(node.getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE - VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM / 2.0);
+    			point.setCenterY(node.getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE - VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM / 2.0);
     			point.setUserData("pathNode");
     			this.getChildren().add(point);
     		}
@@ -338,8 +334,8 @@ public class Field extends Pane {
         				rect.setWidth(VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
         				rect.setHeight(VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
         				rect.setFill(Color.RED);
-        				rect.setX(grid.getNode(x, y).getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
-        				rect.setY(grid.getNode(x, y).getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+        				rect.setX(grid.getNode(x, y).getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
+        				rect.setY(grid.getNode(x, y).getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
         				rect.setUserData("obstacleNode");
         				this.getChildren().add(rect);
         			}
@@ -354,8 +350,8 @@ public class Field extends Pane {
         			if (!grid.getNode(x, y).isWalkable()) {
         				Circle point = new Circle();
         				point.setRadius(TARGET_RADIUS / 3); point.setFill(Color.RED);
-        				point.setCenterX(grid.getNode(x, y).getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
-        				point.setCenterY(grid.getNode(x, y).getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / 2.0);
+        				point.setCenterX(grid.getNode(x, y).getXPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM - PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
+        				point.setCenterY(grid.getNode(x, y).getYPos() * VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM - PATH_GRID_SQUARE_NUM + VISUAL_SQUARE_SIZE / PATH_GRID_SQUARE_NUM);
         				point.setUserData("obstacleNode");
         				this.getChildren().add(point);
         			}
@@ -365,11 +361,23 @@ public class Field extends Pane {
     }
     
     public void checkFieldRefresh() {
-    	for (KeyCode keyCode : keysPressed) {
-        	switch (keyCode) {
-        		case SPACE:
-        			initializeField();
-        	}
-        }
+    	if (refreshToggle) {
+    		for (KeyCode keyCode : keysPressed) {
+            	switch (keyCode) {
+            		case SPACE:
+        				initializeField();
+        				refreshToggle = false;
+        				return;
+            	}
+            }
+    	} else {
+    		for (KeyCode keyCode : keysPressed) {
+            	switch (keyCode) {
+            		case SPACE:
+        				return;
+            	}
+            }
+    		refreshToggle = true;
+    	}
     }
 }
