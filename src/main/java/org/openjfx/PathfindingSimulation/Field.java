@@ -28,7 +28,7 @@ public class Field extends Pane {
 	
 	// Density of path grid per visual square (ie. Number of squares per square)
 	// Causes instability at > 3
-	private static final int PATH_GRID_SQUARE_NUM = 3;
+	private static final int PATH_GRID_SQUARE_NUM = 5;
 	
 	// Number of visual grid squares
 	private static final int NUM_X_SQUARES = WINDOW_SIZE_WIDTH / VISUAL_SQUARE_SIZE;
@@ -45,7 +45,7 @@ public class Field extends Pane {
 	private static final int WIN = 2;
 	
 	// Visualization settings
-	private static final boolean SHOW_PATH_VISUALIZATION = false;
+	private static final boolean SHOW_PATH_VISUALIZATION = true;
 	private static final boolean SHOW_OBSTACLE_GRID_POSITION = false;
 	private static final boolean RECTANGLE_VISUALIZATION = false;
 	private static final boolean DOT_VISUALIZATION = true;

@@ -64,25 +64,8 @@ public class Grid {
                 if (!neighbor.isWalkable() || closedSet.contains(neighbor)) continue;
 
                 double tentativeGCost = current.getGCost() + calculateDistance(current, neighbor);
-                boolean inSight = false;
                 
-                try {
-                	if (current.getParent() != null) inSight = lineOfSight(current.getParent(), neighbor);
-                }
-                catch(Exception ArrayIndexOutOfBoundsException) {
-                	System.out.println("Exception caught");
-                }
-                
-                if (inSight) {
-                    neighbor.setGCost(tentativeGCost);
-                    neighbor.setHCost(calculateTrueDistance(neighbor, goalNode));
-                    neighbor.setParent(current.getParent());
-                    neighbor.setFCost(neighbor.getGCost() + neighbor.getHCost());
-
-                    if (!openSet.contains(neighbor)) {
-                        openSet.add(neighbor);
-                    }
-                } else if (tentativeGCost < neighbor.getGCost() || !openSet.contains(neighbor)) {
+                if (tentativeGCost < neighbor.getGCost() || !openSet.contains(neighbor)) {
                     neighbor.setGCost(tentativeGCost);
                     neighbor.setHCost(calculateTrueDistance(neighbor, goalNode));
                     neighbor.setParent(current);
@@ -148,6 +131,27 @@ public class Grid {
         List<GridNode> path = new ArrayList<>();
         for (GridNode node = goalNode; node != null; node = node.getParent()) {
             path.add(0, node);
+        }
+
+        // Start from the end of the path and move towards the start
+        int i = path.size() - 1;
+        while (i > 0) {
+            int j = 0;
+            // Try to find the furthest node from the current node i that is directly visible
+            while (j < i - 1) {
+                if (lineOfSight(path.get(i), path.get(j))) {
+                    // If there's a line of sight, remove intermediate nodes
+                    for (int k = i - 1; k > j; k--) {
+                        path.remove(k);
+                    }
+                    // Adjust i, since we've modified the path and therefore changed its size
+                    i = j + 1;
+                    break; // Break out of the loop since we've found the furthest node in sight
+                } else {
+                    ++j; // Move towards i and check the next node
+                }
+            }
+            i--; // Move to the previous node to check for its line of sight with preceding nodes
         }
 
         return path;
