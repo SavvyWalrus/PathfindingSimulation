@@ -64,25 +64,8 @@ public class Grid {
                 if (!neighbor.isWalkable() || closedSet.contains(neighbor)) continue;
 
                 double tentativeGCost = current.getGCost() + calculateDistance(current, neighbor);
-                boolean inSight = false;
                 
-                try {
-                	if (current.getParent() != null) inSight = lineOfSight(current.getParent(), neighbor);
-                }
-                catch(Exception ArrayIndexOutOfBoundsException) {
-                	System.out.println("Exception caught");
-                }
-                
-                if (inSight) {
-                    neighbor.setGCost(tentativeGCost);
-                    neighbor.setHCost(calculateTrueDistance(neighbor, goalNode));
-                    neighbor.setParent(current.getParent());
-                    neighbor.setFCost(neighbor.getGCost() + neighbor.getHCost());
-
-                    if (!openSet.contains(neighbor)) {
-                        openSet.add(neighbor);
-                    }
-                } else if (tentativeGCost < neighbor.getGCost() || !openSet.contains(neighbor)) {
+                if (tentativeGCost < neighbor.getGCost() || !openSet.contains(neighbor)) {
                     neighbor.setGCost(tentativeGCost);
                     neighbor.setHCost(calculateTrueDistance(neighbor, goalNode));
                     neighbor.setParent(current);
@@ -150,6 +133,27 @@ public class Grid {
             path.add(0, node);
         }
 
+        // Start from the end of the path and move towards the start
+        int i = path.size() - 1;
+        while (i > 0) {
+            int j = 0;
+            // Try to find the furthest node from the current node i that is directly visible
+            while (j < i - 1) {
+                if (lineOfSight(path.get(i), path.get(j))) {
+                    // If there's a line of sight, remove intermediate nodes
+                    for (int k = i - 1; k > j; k--) {
+                        path.remove(k);
+                    }
+                    // Adjust i, since we've modified the path and therefore changed its size
+                    i = j + 1;
+                    break; // Break out of the loop since we've found the furthest node in sight
+                } else {
+                    ++j; // Move towards i and check the next node
+                }
+            }
+            i--; // Move to the previous node to check for its line of sight with preceding nodes
+        }
+
         return path;
     }
 
@@ -173,62 +177,90 @@ public class Grid {
     public boolean lineOfSight(GridNode start, GridNode destination) {
     	if (start.getXPos() + 1 >= width || start.getYPos() + 1 >= height || destination.getXPos() + 1 >= width || destination.getYPos() + 1 >= height) return false;
     	
-        // Check direct line of sight
-        if (!checkLine(start, destination)) return false;
+    	boolean sideToSide = false;
+    	boolean upAndDown = false;
+    	
+    	if (start.getXPos() == destination.getXPos()) upAndDown = true;
+    	if (start.getYPos() == destination.getYPos()) sideToSide = true;
+    	
+    	if (upAndDown != sideToSide) {
+    		if (!checkLine(start, destination)) return false;
+    		else return true;
+    	} else {
+    		// Check direct line of sight
+            if (!checkLine(start, destination)) return false;
 
-        // Adjust for object size by checking additional lines to the right, down, and diagonally down-right
-        GridNode rightStart = nodes[start.getXPos() + 1][start.getYPos()];
-        GridNode rightEnd = nodes[destination.getXPos() + 1][destination.getYPos()];
-        if (rightStart == null || rightEnd == null || !checkLine(rightStart, rightEnd)) return false;
+            // Adjust for object size by checking additional lines to the right, down, and diagonally down-right
+            GridNode rightStart = nodes[start.getXPos() + 1][start.getYPos()];
+            GridNode rightEnd = nodes[destination.getXPos() + 1][destination.getYPos()];
+            if (rightStart == null || rightEnd == null || !checkLine(rightStart, rightEnd)) return false;
 
-        GridNode downStart = nodes[start.getXPos()][start.getYPos() + 1];
-        GridNode downEnd = nodes[destination.getXPos()][destination.getYPos() + 1];
-        if (downStart == null || downEnd == null || !checkLine(downStart, downEnd)) return false;
+            GridNode downStart = nodes[start.getXPos()][start.getYPos() + 1];
+            GridNode downEnd = nodes[destination.getXPos()][destination.getYPos() + 1];
+            if (downStart == null || downEnd == null || !checkLine(downStart, downEnd)) return false;
 
-        GridNode diagStart = nodes[start.getXPos() + 1][start.getYPos() + 1];
-        GridNode diagEnd = nodes[destination.getXPos() + 1][destination.getYPos() + 1];
-        if (diagStart == null || diagEnd == null || !checkLine(diagStart, diagEnd)) return false;
+            GridNode diagStart = nodes[start.getXPos() + 1][start.getYPos() + 1];
+            GridNode diagEnd = nodes[destination.getXPos() + 1][destination.getYPos() + 1];
+            if (diagStart == null || diagEnd == null || !checkLine(diagStart, diagEnd)) return false;
+    	}
 
         return true; // Line of sight is clear for all adjusted checks
     }
 
     // Line of sight check (I no understand this) >.<
     private boolean checkLine(GridNode start, GridNode destination) {
-        int x0 = start.getXPos();
-        int y0 = start.getYPos();
-        int x1 = destination.getXPos();
-        int y1 = destination.getYPos();
-        int dy = y1 - y0;
-        int dx = x1 - x0;
-        int f = 0;
-        int sy = (dy < 0) ? -1 : 1;
-        int sx = (dx < 0) ? -1 : 1;
-        dy = Math.abs(dy);
-        dx = Math.abs(dx);
+        // Initial positions of the start and destination nodes
+        int startX = start.getXPos();
+        int startY = start.getYPos();
+        int destX = destination.getXPos();
+        int destY = destination.getYPos();
 
-        if (dx >= dy) {
-            while (x0 != x1) {
-                f += dy;
-                if (f >= dx) {
-                    if (isObstacle(x0 + ((sx - 1) / 2), y0 + ((sy - 1) / 2))) return false;
-                    y0 += sy;
-                    f -= dx;
+        // Calculate differences in X and Y positions
+        int deltaY = destY - startY;
+        int deltaX = destX - startX;
+
+        // Fraction that increments as we move, used to decide when to step in y-direction (for dx >= dy) or x-direction (for dy > dx)
+        int fraction = 0;
+
+        // Determine the step direction along each axis
+        int stepY = (deltaY < 0) ? -1 : 1; // Vertical step direction
+        int stepX = (deltaX < 0) ? -1 : 1; // Horizontal step direction
+
+        // Take the absolute values of deltas to work with positive numbers
+        deltaY = Math.abs(deltaY);
+        deltaX = Math.abs(deltaX);
+
+        if (deltaX >= deltaY) {
+            // Moving primarily along the X-axis
+            while (startX != destX) {
+                fraction += deltaY;
+                if (fraction >= deltaX) {
+                    // Time to step in Y
+                    if (isObstacle(startX + ((stepX - 1) / 2), startY + ((stepY - 1) / 2))) return false;
+                    startY += stepY;
+                    fraction -= deltaX;
                 }
-                if (f != 0 && isObstacle(x0 + ((sx - 1) / 2), y0 + ((sy - 1) / 2))) return false;
-                if (dy == 0 && isObstacle(x0 + ((sx - 1) / 2), y0) && isObstacle(x0 + ((sx - 1) / 2), y0 - 1)) return false;
-                x0 += sx;
+                // Check for obstacles in the current path
+                if (fraction != 0 && isObstacle(startX + ((stepX - 1) / 2), startY + ((stepY - 1) / 2))) return false;
+                // Special case for horizontal lines to prevent stepping over obstacles
+                if (deltaY == 0 && isObstacle(startX + ((stepX - 1) / 2), startY) && isObstacle(startX + ((stepX - 1) / 2), startY - 1)) return false;
+                startX += stepX;
             }
         } else {
-            while (y0 != y1) {
-                f += dx;
-                if (f >= dy) {
-                    if (isObstacle(x0 + ((sx - 1) / 2), y0 + ((sy - 1) / 2))) return false;
-                    x0 += sx;
-                    f -= dy;
+            // Moving primarily along the Y-axis
+            while (startY != destY) {
+                fraction += deltaX;
+                if (fraction >= deltaY) {
+                    // Time to step in X
+                    if (isObstacle(startX + ((stepX - 1) / 2), startY + ((stepY - 1) / 2))) return false;
+                    startX += stepX;
+                    fraction -= deltaY;
                 }
-                if (f != 0 && isObstacle(x0 + ((sx - 1) / 2), y0 + ((sy - 1) / 2))) return false;
-                if (dx == 0 && isObstacle(x0, y0 + ((sy - 1) / 2)) && isObstacle(x0 - 1, y0 + ((sy - 1) / 2))) return false;
-                y0 += sy;
+                // Check for obstacles in the current path
+                if (fraction != 0 && isObstacle(startX + ((stepX - 1) / 2), startY + ((stepY - 1) / 2))) return false;
+                // Special case for vertical lines to prevent stepping over obstacles
+                if (deltaX == 0 && isObstacle(startX, startY + ((stepY - 1) / 2)) && isObstacle(startX - 1, startY + ((stepY - 1) / 2))) return false;
+                startY += stepY;
             }
         }
 

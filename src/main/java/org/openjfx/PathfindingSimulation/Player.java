@@ -2,30 +2,42 @@ package org.openjfx.PathfindingSimulation;
 
 import java.util.List;
 import java.util.Random;
+
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
 
 public class Player extends Rectangle {
 	// Movement variables
-	private static final int MAX_SPEED = 200;
+	private static int MAX_SPEED = 200;
 	private static final int ACCELERATION = 1;
+	private double cumulativePixelsMoved = 0;
 	private double verticalMomentum = 0.0;
 	private double horizontalMomentum = 0.0;
+	private int visualSquareSize;
+	private int pathGridSquareNum;
+	private double currentX;
+	private double currentY;
 	
 	private static final int PLAYER_BORDER_WIDTH = 3;
 	private int xGridPos;
 	private int yGridPos;
 	
-	public Player() {
+	PlayerController controller;
+	
+	public Player(Pane pane) {
 		setXGridPos(0);
 		setYGridPos(0);
+		controller = new PlayerController(this, pane);
 	}
 	
     // Creates the player object and randomly sets its position
-    public boolean initializePlayer(int WINDOW_SIZE_WIDTH, int WINDOW_SIZE_HEIGHT, int VISUAL_SQUARE_SIZE, int PATH_GRID_SQUARE_NUM, List<Rectangle> obstacles, Field field) {
+    public boolean initializePlayer(List<Rectangle> obstacles, Field field) {
     	Random rand = new Random();
-    	int numXSquares = WINDOW_SIZE_WIDTH / VISUAL_SQUARE_SIZE;
-    	int numYSquares = WINDOW_SIZE_HEIGHT / VISUAL_SQUARE_SIZE;
+    	visualSquareSize = Configuration.getVisualSquareSize();
+    	pathGridSquareNum = Configuration.getPathGridSquareNum();
+    	int numXSquares = Configuration.getWindowSizeWidth() / visualSquareSize;
+    	int numYSquares = Configuration.getWindowSizeHeight() / visualSquareSize;
     	int attemptLimit = 10;
     	int i = 0;
     	boolean failedAttempt = true;
@@ -33,17 +45,18 @@ public class Player extends Rectangle {
     	// Resets the player object's translate position for respawn
     	setTranslateX(0);
         setTranslateY(0);
+        setCumulativePixelsMoved(0.0);
     	
     	while(i < attemptLimit) {
-    		setXGridPos(PATH_GRID_SQUARE_NUM * (rand.nextInt(numXSquares - 10) + 5));
-    		setYGridPos(PATH_GRID_SQUARE_NUM * (rand.nextInt(10) + (numYSquares - 12)));
-            int xPos = getXGridPos() / PATH_GRID_SQUARE_NUM * VISUAL_SQUARE_SIZE + PLAYER_BORDER_WIDTH;
-            int yPos = getYGridPos() / PATH_GRID_SQUARE_NUM * VISUAL_SQUARE_SIZE + PLAYER_BORDER_WIDTH;
+    		setXGridPos(pathGridSquareNum * (rand.nextInt(numXSquares - 10) + 5));
+    		setYGridPos(pathGridSquareNum * (rand.nextInt(10) + (numYSquares - 12)));
+            int xPos = getXGridPos() / pathGridSquareNum * visualSquareSize + PLAYER_BORDER_WIDTH;
+            int yPos = getYGridPos() / pathGridSquareNum * visualSquareSize + PLAYER_BORDER_WIDTH;
             
-            setX(xPos - VISUAL_SQUARE_SIZE);
-            setY(yPos - VISUAL_SQUARE_SIZE);
-            setWidth((VISUAL_SQUARE_SIZE - PLAYER_BORDER_WIDTH) * 3);
-            setHeight((VISUAL_SQUARE_SIZE - PLAYER_BORDER_WIDTH) * 3);
+            setX(xPos - visualSquareSize);
+            setY(yPos - visualSquareSize);
+            setWidth((visualSquareSize - PLAYER_BORDER_WIDTH) * 3);
+            setHeight((visualSquareSize - PLAYER_BORDER_WIDTH) * 3);
             
             boolean overlaps = false;
             for(Rectangle currentObstacle : obstacles) {
@@ -56,8 +69,8 @@ public class Player extends Rectangle {
             if(!overlaps) {
             	setX(xPos);
             	setY(yPos);
-            	setWidth(VISUAL_SQUARE_SIZE - 2 * PLAYER_BORDER_WIDTH);
-            	setHeight(VISUAL_SQUARE_SIZE - 2 * PLAYER_BORDER_WIDTH);
+            	setWidth(visualSquareSize - 2 * PLAYER_BORDER_WIDTH);
+            	setHeight(visualSquareSize - 2 * PLAYER_BORDER_WIDTH);
             	setFill(Color.RED);
             	setStroke(Color.BLACK);
             	setStrokeWidth(PLAYER_BORDER_WIDTH);
@@ -72,27 +85,69 @@ public class Player extends Rectangle {
     	return !failedAttempt;
     }
 	
-	public void moveUp(double timestep) {
-		increaseVerticalMomentum();
-    	setTranslateY(getTranslateY() + getVerticalMomentum() * timestep);
+	public void moveUp(double timestep, Grid grid) {
+		currentY = getY() + getTranslateY();
+		
+		double predictedMovement = getVerticalMomentum() * timestep;
+		int predictedYGridPos = (int)((currentY + predictedMovement) / visualSquareSize * pathGridSquareNum);
+		if (grid.getNode(getXGridPos(), predictedYGridPos).isWalkable()) {
+			setTranslateY(getTranslateY() + predictedMovement);
+	    	increaseVerticalMomentum();
+		} else {
+			setVerticalMomentum(0);
+			predictedYGridPos = (int)(currentY / visualSquareSize * pathGridSquareNum);
+			double newY = (predictedYGridPos + 1) / pathGridSquareNum * visualSquareSize;
+			setTranslateY(newY - getY());
+		}
 	}
 	
-	public void moveDown(double timestep) {
-		decreaseVerticalMomentum();
-    	setTranslateY(getTranslateY() + getVerticalMomentum() * timestep);
+	public void moveDown(double timestep, Grid grid) {
+		currentY = getY() + getTranslateY();
+		
+		double predictedMovement = getVerticalMomentum() * timestep;
+		int predictedYGridPos = (int)((currentY + predictedMovement) / visualSquareSize * pathGridSquareNum);
+		if (grid.getNode(getXGridPos(), predictedYGridPos).isWalkable()) {
+			setTranslateY(getTranslateY() + predictedMovement);
+			decreaseVerticalMomentum();
+		} else {
+			double diff = ((predictedYGridPos + 1) / pathGridSquareNum * visualSquareSize) - currentY + 2 * PLAYER_BORDER_WIDTH;
+			if (diff >= 0) setTranslateY(getTranslateY() + diff - 1.01);
+			setVerticalMomentum(0);
+		}
 	}
 	
-	public void moveLeft(double timestep) {
-		decreaseHorizontalMomentum();
-    	setTranslateX(getTranslateX() + getHorizontalMomentum() * timestep);
+	public void moveLeft(double timestep, Grid grid) {
+		currentX = getX() + getTranslateX();
+		
+		double predictedMovement = getHorizontalMomentum() * timestep;
+		int predictedXGridPos = (int)((currentX + predictedMovement) / visualSquareSize * pathGridSquareNum);
+		if (grid.getNode(predictedXGridPos, getYGridPos()).isWalkable()) {
+			setTranslateX(getTranslateX() + predictedMovement);
+			decreaseHorizontalMomentum();
+		} else {
+			setHorizontalMomentum(0);
+			predictedXGridPos = (int)(currentX / visualSquareSize * pathGridSquareNum);
+			double newX = (predictedXGridPos + 1) / pathGridSquareNum * visualSquareSize;
+			setTranslateX(newX - getX());
+		}
 	}
 	
-	public void moveRight(double timestep) {
-		increaseHorizontalMomentum();
-    	setTranslateX(getTranslateX() + getHorizontalMomentum() * timestep);
+	public void moveRight(double timestep, Grid grid) {
+		currentX = getX() + getTranslateX();
+		
+		double predictedMovement = getHorizontalMomentum() * timestep;
+		int predictedXGridPos = (int)((currentX + predictedMovement) / visualSquareSize * pathGridSquareNum);
+		if (grid.getNode(predictedXGridPos, getYGridPos()).isWalkable()) {
+			setTranslateX(getTranslateX() + predictedMovement);
+			increaseHorizontalMomentum();
+		} else {
+			double diff = ((predictedXGridPos + 1) / pathGridSquareNum * visualSquareSize) - currentX + 2 * PLAYER_BORDER_WIDTH;
+			if (diff >= 0) setTranslateX(getTranslateX() + diff - 1.01);
+			setHorizontalMomentum(0);
+		}
 	}
 	
-	public void moveTowards(double dx, double dy, double timestep) {
+	public void moveTowards(double dx, double dy, double timestep, Grid grid) {
 	    double distance = Math.sqrt(dx * dx + dy * dy);
 	    
 	    if (distance <= MAX_SPEED * timestep) {
@@ -141,10 +196,18 @@ public class Player extends Rectangle {
 	        // Adjust the sign of the movement based on the direction
 	        moveX *= Math.signum(dx);
 	        moveY *= Math.signum(dy);
-
+	        
 	        // Move the object
-	        setTranslateX(getTranslateX() + moveX);
-	        setTranslateY(getTranslateY() + moveY);
+	        int predictedXGridPos = (int)((currentX + moveX) / visualSquareSize * pathGridSquareNum);
+	        if (grid.getNode(predictedXGridPos, getYGridPos()).isWalkable()) {
+	        	setTranslateX(getTranslateX() + moveX);
+	        }
+	        int predictedYGridPos = (int)((currentY + moveY) / visualSquareSize * pathGridSquareNum);
+	        if (grid.getNode(getXGridPos(), predictedYGridPos).isWalkable()) {
+	        	setTranslateY(getTranslateY() + moveY);
+	        }
+	        
+	        setCumulativePixelsMoved(cumulativePixelsMoved += Math.hypot(moveX, moveY));
 	    }
 	}
 	
@@ -180,8 +243,17 @@ public class Player extends Rectangle {
 		return yGridPos;
 	}
 	
+	public void calculateNewGridPos(int XPixelGridPos, int YPixelGridPos) {
+		setXGridPos(XPixelGridPos);
+		setYGridPos(YPixelGridPos);
+	}
+	
 	public double getMaxSpeed() {
 		return MAX_SPEED;
+	}
+	
+	public void setMaxSpeed(int speed) {
+		MAX_SPEED = speed;
 	}
 	
 	public double getAcceleration() {
@@ -206,5 +278,38 @@ public class Player extends Rectangle {
 	
 	public int getPlayerBorderWidth() {
 		return PLAYER_BORDER_WIDTH;
+	}
+	
+	public double getCumulativePixelsMoved() {
+		return cumulativePixelsMoved;
+	}
+	
+	public void setCumulativePixelsMoved(double value) {
+		cumulativePixelsMoved = value;
+	}
+	
+	public void setCurrentX(double x) {
+		currentX = x;
+	}
+	
+	public double getCurrentX() {
+		return currentX;
+	}
+	
+	public void setCurrentY(double y) {
+		currentY = y;
+	}
+	
+	public double getCurrentY() {
+		return currentY;
+	}
+	
+	public void updateGridPos() {
+		setXGridPos((int)(currentX / visualSquareSize * pathGridSquareNum));
+		setYGridPos((int)(currentY / visualSquareSize * pathGridSquareNum));
+	}
+	
+	public PlayerController getController() {
+		return controller;
 	}
 }
