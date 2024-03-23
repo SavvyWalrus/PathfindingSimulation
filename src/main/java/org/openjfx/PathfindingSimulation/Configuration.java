@@ -1,6 +1,9 @@
 package org.openjfx.PathfindingSimulation;
 
 public class Configuration {
+	// Number of enemies
+	private static final int ENEMY_NUMBER = 1;
+
 	// Number of obstacles on the field
 	private static final int MAX_OBSTACLES = 25;
 	private static final int MIN_OBSTACLES = 15;
@@ -18,7 +21,7 @@ public class Configuration {
 
 	// Density of path grid per visual square (ie. Number of squares per square)
 	// Causes instability at > 3 for strictly A*
-	// Set between 3 and 5 for Theta* / 3 for A*
+	// Set between 3 and 5 for Theta* (5 recommended for more precise collision) / 3 for A*
 	private static final int PATH_GRID_SQUARE_NUM = 5;
 
 	// Number of visual grid squares
@@ -45,17 +48,17 @@ public class Configuration {
 	// Pathfinding activation
 	private static final boolean PATHFINDING_ACTIVE = true;
 	
+	// Frequency of path refresh
 	private static final int MAX_PIXELS_BEFORE_PATH_REFRESH = 200;
+	
+	// Max field initialization attempts
+	private static final int ATTEMPT_LIMIT = 10;
 
 	// Dictates spacebar field refresh
 	private static boolean refreshToggle = true;
-
-	public static boolean isRefreshToggle() {
-		return refreshToggle;
-	}
-
-	public static void setRefreshToggle(boolean refreshToggle) {
-		Configuration.refreshToggle = refreshToggle;
+	
+	public static int getEnemyNumber() {
+		return ENEMY_NUMBER;
 	}
 
 	public static int getMaxObstacles() {
@@ -140,5 +143,17 @@ public class Configuration {
 
 	public static int getMaxPixelsBeforePathRefresh() {
 		return MAX_PIXELS_BEFORE_PATH_REFRESH;
+	}
+	
+	public static int getAttemptLimit() {
+		return ATTEMPT_LIMIT;
+	}
+	
+	public static boolean isRefreshToggle() {
+		return refreshToggle;
+	}
+
+	public static void setRefreshToggle(boolean refreshToggle) {
+		Configuration.refreshToggle = refreshToggle;
 	}
 }

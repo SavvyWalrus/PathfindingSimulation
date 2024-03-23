@@ -2,12 +2,10 @@ package org.openjfx.PathfindingSimulation;
 
 import javafx.scene.Node;
 import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class Field extends Pane {
 	// Initializes a Random object
@@ -19,16 +17,17 @@ public class Field extends Pane {
 	// Initializes the target object with no properties
 	Target target = new Target(Configuration.getVisualSquareSize(), Configuration.getPathGridSquareNum());
 
-	// List of obstacle objects
-	ObstacleList obstacles = new ObstacleList();
-
 	// Creates the background and adds it to a Node list
 	List<Node> background = initializeBackground();
 
 	// Grid representation for pathfinding
-	Grid grid = new Grid(Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(), Configuration.getNumYSquares() * Configuration.getPathGridSquareNum());
-	GridNode playerPos;
-	List<GridNode> path;
+	Grid grid = new Grid((Configuration.getNumXSquares() - 1) * Configuration.getPathGridSquareNum(), (Configuration.getNumYSquares() - 1) * Configuration.getPathGridSquareNum());
+	
+	// Initializes Computer Controller with no enemies
+	ComputerController controller = new ComputerController(this, grid, player);
+	
+	// List of obstacle objects
+	ObstacleList obstacles = new ObstacleList(this, grid);
 
 	// Initializes and sets the various field layers
 	public void initializeField() {
@@ -45,6 +44,13 @@ public class Field extends Pane {
 			success = target.initializeTarget(obstacles.getObstacles(), this, grid);
 			if (success) {
 				success = player.initializePlayer(obstacles.getObstacles(), this);
+				if (success) {
+					controller.clearEnemies();
+					for (int count = 0; count < Configuration.getEnemyNumber(); ++count) {
+						success = controller.initializeEnemy(obstacles.getObstacles());
+						if (!success) break;
+					}
+				}
 			}
 		}
 
@@ -55,8 +61,12 @@ public class Field extends Pane {
 		
 		if (Configuration.isShowPlayerHitboxVisualization())
 			PlayerController.initializePlayerHitboxVisualization();
+		
+		// Optional obstacle visualization
+		if (Configuration.isShowObstacleGridPosition())
+			obstacles.initializeObstacleGridVisualization();
 
-		updatePath();
+		if (controller.containsEnemies()) controller.updatePath();
 	}
 
 	// Sets up the checkerboard background
@@ -88,149 +98,6 @@ public class Field extends Pane {
 		return background;
 	}
 
-	public boolean updateComputerPosition(double timestep) {
-		if (!Configuration.isPathfindingActive() || path == null || path.isEmpty()) {
-			return false; // No path to follow
-		}
-
-		// Calculate the target position in pixels
-		double targetX = (double)(path.get(0).getXPos() * Configuration.getVisualSquareSize()) / (double)Configuration.getPathGridSquareNum() + player.getPlayerBorderWidth();
-		double targetY = (double)(path.get(0).getYPos() * Configuration.getVisualSquareSize()) / (double)Configuration.getPathGridSquareNum() + player.getPlayerBorderWidth();
-
-		// Current position including translations
-		player.setCurrentX(player.getX() + player.getTranslateX());
-		player.setCurrentY(player.getY() + player.getTranslateY());
-
-		// Calculate direction vector components
-		double dx = targetX - player.getCurrentX();
-		double dy = targetY - player.getCurrentY();
-
-		// Check if reached the current target node within a threshold
-		boolean hasReachedX = Math.abs(player.getCurrentX() - targetX) <= 0.9;
-		boolean hasReachedY = Math.abs(player.getCurrentY() - targetY) <= 0.9;
-
-		// Apply movement and speed
-		if (!hasReachedX || !hasReachedY) {
-			player.moveTowards(dx, dy, timestep, grid);
-		}
-		
-		player.updateGridPos();
-		
-		// Refreshes if the refresh pixel threshold or the next node has been reached
-		if (player.getCumulativePixelsMoved() >= Configuration.getMaxPixelsBeforePathRefresh() && !(hasReachedX && hasReachedY)) {
-			player.setCumulativePixelsMoved(0.0);
-			
-			updatePath();
-			
-			if (path.isEmpty()) {
-				return false; // No path to follow
-			}
-			
-			// Necessary to prevent sudden direction shift
-			if (path.size() > 0) path.remove(0);
-		} else if (hasReachedX && hasReachedY) {
-			player.setXGridPos(path.get(1).getXPos());
-			player.setYGridPos(path.get(1).getYPos());
-			updatePath();
-		}
-		
-		// Optional path visualization
-		if (Configuration.isShowPathVisualization())
-			initializePathVisualization();
-		
-		if (Configuration.isShowPlayerHitboxVisualization())
-			PlayerController.initializePlayerHitboxVisualization();
-
-		return true; // Continuing movement
-	}
-
-	public void updatePath() {
-		playerPos = new GridNode(player.getXGridPos(), player.getYGridPos(), true);
-		path = grid.findPath(playerPos, target.getGoalNode());
-		
-		// Optional obstacle visualization
-		if (Configuration.isShowObstacleGridPosition())
-			initializeObstacleGridVisualization();
-	}
-
-	public void initializePathVisualization() {
-		// Aborts if no path exists
-		if (path.isEmpty())
-			return;
-
-		// Remove previous path visualization
-		this.getChildren().removeIf(node -> "pathNode".equals(node.getUserData()));
-
-		// Dot Visualization
-		if (Configuration.isDotVisualization()) {
-			for (GridNode node : path) {
-				Circle point = new Circle();
-				point.setRadius(Configuration.getTargetRadius() / 3);
-				point.setFill(Color.GREEN);
-				point.setCenterX(node.getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum() + player.getPlayerBorderWidth());
-				point.setCenterY(node.getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum() + player.getPlayerBorderWidth());
-				point.setUserData("pathNode");
-				this.getChildren().add(point);
-			}
-		}
-
-		// Rectangle visualization
-		if (Configuration.isRectangleVisualization()) {
-			for (GridNode node : path) {
-				Rectangle rect = new Rectangle();
-				rect.setWidth(Configuration.getVisualSquareSize());
-				rect.setHeight(Configuration.getVisualSquareSize());
-				rect.setFill(Color.GREEN);
-				rect.setX(node.getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-				rect.setY(node.getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-				rect.setUserData("pathNode");
-				this.getChildren().add(rect);
-			}
-		}
-	}
-
-	public void initializeObstacleGridVisualization() {
-		// Remove previous obstacle visualization
-		this.getChildren().removeIf(node -> "obstacleNode".equals(node.getUserData()));
-
-		// Rectangle visualization
-		if (Configuration.isRectangleVisualization()) {
-			for (int x = 0; x < Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(); ++x) {
-				for (int y = 0; y < Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(); ++y) {
-					if (!grid.getNode(x, y).isWalkable()) {
-						Rectangle rect = new Rectangle();
-						rect.setWidth(Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-						rect.setHeight(Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-						rect.setFill(Color.RED);
-						rect.setX(grid.getNode(x, y).getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-						rect.setY(grid.getNode(x, y).getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-						rect.setUserData("obstacleNode");
-						this.getChildren().add(rect);
-					}
-				}
-			}
-		}
-
-		// Dot Visualization
-		if (Configuration.isDotVisualization()) {
-			for (int x = 0; x < Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(); ++x) {
-				for (int y = 0; y < Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(); ++y) {
-					if (!grid.getNode(x, y).isWalkable()) {
-						Circle point = new Circle();
-						point.setRadius(Configuration.getTargetRadius() / 6);
-						point.setFill(Color.RED);
-						point.setCenterX(grid.getNode(x, y).getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum()
-								- Configuration.getPathGridSquareNum() + Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-						point.setCenterY(grid.getNode(x, y).getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum()
-								- Configuration.getPathGridSquareNum() + Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-						point.setUserData("obstacleNode");
-						this.getChildren().add(point);
-					}
-				}
-			}
-		}
-	}
-
 	public void checkFieldRefresh() {
 		if (Configuration.isRefreshToggle()) {
 			for (KeyCode keyCode : MainApplication.getKeysPressed()) {
@@ -239,6 +106,8 @@ public class Field extends Pane {
 					initializeField();
 					Configuration.setRefreshToggle(false);
 					return;
+				default:
+					continue;
 				}
 			}
 		} else {
@@ -246,6 +115,8 @@ public class Field extends Pane {
 				switch (keyCode) {
 				case SPACE:
 					return;
+				default:
+					continue;
 				}
 			}
 			Configuration.setRefreshToggle(true);
@@ -262,5 +133,13 @@ public class Field extends Pane {
 	
 	public Grid getGrid() {
 		return grid;
+	}
+	
+	public ComputerController getController() {
+		return controller;
+	}
+	
+	public ObstacleList getObstacles() {
+		return obstacles;
 	}
 }

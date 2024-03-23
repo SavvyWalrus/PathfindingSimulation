@@ -22,8 +22,13 @@ public class Grid {
     private void initializeNodes() {
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-            	// Assumes all nodes are walkable initially
-                nodes[x][y] = new GridNode(x, y, true);
+            	// Assumes all nodes except the border are walkable initially
+            	if (x < Configuration.getPathGridSquareNum() || y < Configuration.getPathGridSquareNum() ||
+            			width - x < Configuration.getPathGridSquareNum() || height - y < Configuration.getPathGridSquareNum()) {
+            		nodes[x][y] = new GridNode(x, y, false);
+            	} else {
+            		nodes[x][y] = new GridNode(x, y, true);
+            	}
             }
         }
     }

@@ -30,13 +30,11 @@ public class Target extends Circle {
     // Creates the target and randomly sets its position
     public boolean initializeTarget(List<Rectangle> obstacles, Field field, Grid grid) {
     	Random rand = new Random();
-    	int numXSquares = Configuration.getWindowSizeWidth() / Configuration.getVisualSquareSize();
-    	int attemptLimit = 10;
     	int i = 0;
     	boolean failedAttempt = true;
     	
-    	while(i < attemptLimit) {
-    		xGridPos = Configuration.getPathGridSquareNum() * (rand.nextInt(numXSquares - 10) + 5);
+    	while(i < Configuration.getAttemptLimit()) {
+    		xGridPos = Configuration.getPathGridSquareNum() * (rand.nextInt(Configuration.getNumXSquares() - 10) + 5);
     		yGridPos = Configuration.getPathGridSquareNum() * (rand.nextInt(10) + 2);
     		double xPos = xGridPos / Configuration.getPathGridSquareNum() * Configuration.getVisualSquareSize() + Configuration.getVisualSquareSize() / 2;
             double yPos = yGridPos / Configuration.getPathGridSquareNum() * Configuration.getVisualSquareSize() + Configuration.getVisualSquareSize() / 2;

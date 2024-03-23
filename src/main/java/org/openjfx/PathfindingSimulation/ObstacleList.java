@@ -6,6 +6,7 @@ import java.util.Random;
 
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 
 public class ObstacleList {
@@ -16,6 +17,14 @@ public class ObstacleList {
 	
 	// List of obstacle objects
 	List<Rectangle> obstacles = new ArrayList<>();
+	
+	static Pane pane;
+	static Grid grid;
+	
+	ObstacleList(Pane pane, Grid grid) {
+		ObstacleList.pane = pane;
+		ObstacleList.grid = grid;
+	}
 	
 	// Dynamically creates the obstacles and adds them to the obstacle list
 	public void initializeObstacles(Pane pane, Grid grid) {
@@ -64,6 +73,48 @@ public class ObstacleList {
 										yGridPos + 1 + y * Configuration.getPathGridSquareNum() + subY, true);
 							}
 						}
+					}
+				}
+			}
+		}
+	}
+	
+	public void initializeObstacleGridVisualization() {
+		// Remove previous obstacle visualization
+		pane.getChildren().removeIf(node -> "obstacleNode".equals(node.getUserData()));
+
+		// Rectangle visualization
+		if (Configuration.isRectangleVisualization()) {
+			for (int x = 0; x < Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(); ++x) {
+				for (int y = 0; y < Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(); ++y) {
+					if (!grid.getNode(x, y).isWalkable()) {
+						Rectangle rect = new Rectangle();
+						rect.setWidth(Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
+						rect.setHeight(Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
+						rect.setFill(Color.RED);
+						rect.setX(grid.getNode(x, y).getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
+						rect.setY(grid.getNode(x, y).getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
+						rect.setUserData("obstacleNode");
+						pane.getChildren().add(rect);
+					}
+				}
+			}
+		}
+
+		// Dot Visualization
+		if (Configuration.isDotVisualization()) {
+			for (int x = 0; x < Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(); ++x) {
+				for (int y = 0; y < Configuration.getNumXSquares() * Configuration.getPathGridSquareNum(); ++y) {
+					if (!grid.getNode(x, y).isWalkable()) {
+						Circle point = new Circle();
+						point.setRadius(Configuration.getTargetRadius() / 6);
+						point.setFill(Color.RED);
+						point.setCenterX(grid.getNode(x, y).getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum()
+								- Configuration.getPathGridSquareNum() + Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
+						point.setCenterY(grid.getNode(x, y).getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum()
+								- Configuration.getPathGridSquareNum() + Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
+						point.setUserData("obstacleNode");
+						pane.getChildren().add(point);
 					}
 				}
 			}

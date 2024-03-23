@@ -9,6 +9,7 @@ import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
 public class MainApplication extends Application {
@@ -83,6 +84,16 @@ public class MainApplication extends Application {
                             break;
                     }
                 }
+				
+				if (gameField.getController().updateComputerPosition(timeStep)) {
+					for (Enemy enemy : gameField.getController().getEnemies()) {
+						if (gameField.getPlayer().getBoundsInParent().intersects(enemy.getBoundsInParent())) {
+							PlayerController.clearMomentum();
+                            gameField.initializeField();
+						}
+					}
+				}
+				
                 lastTime = now;
             }
         }.start();

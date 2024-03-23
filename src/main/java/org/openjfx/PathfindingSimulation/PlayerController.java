@@ -62,8 +62,6 @@ public class PlayerController {
 			player.setCurrentY(player.getY() + player.getTranslateY());
 			player.updateGridPos();
 			
-			System.out.println(player.getXGridPos() + " " + player.getYGridPos());
-			
 			if (Configuration.isShowPlayerHitboxVisualization())
 				initializePlayerHitboxVisualization();
 			
@@ -87,7 +85,7 @@ public class PlayerController {
 		}
 
 		if (overlaps) {
-			System.out.println("FAIL");
+			System.out.println("COLLISION BREAK");
 		} else if (player.getBoundsInParent().intersects(target.getBoundsInParent())) {
 			return Configuration.getWin();
 		}
