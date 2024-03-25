@@ -21,11 +21,12 @@ public class Field extends Pane {
 	List<Node> background = initializeBackground();
 
 	// Grid representation for pathfinding
-	Grid grid = new Grid((Configuration.getNumXSquares() - 1) * Configuration.getPathGridSquareNum(), (Configuration.getNumYSquares() - 1) * Configuration.getPathGridSquareNum());
-	
+	Grid grid = new Grid((Configuration.getNumXSquares()) * Configuration.getPathGridSquareNum(),
+			(Configuration.getNumYSquares()) * Configuration.getPathGridSquareNum());
+
 	// Initializes Computer Controller with no enemies
 	ComputerController controller = new ComputerController(this, grid, player);
-	
+
 	// List of obstacle objects
 	ObstacleList obstacles = new ObstacleList(this, grid);
 
@@ -48,7 +49,8 @@ public class Field extends Pane {
 					controller.clearEnemies();
 					for (int count = 0; count < Configuration.getEnemyNumber(); ++count) {
 						success = controller.initializeEnemy(obstacles.getObstacles());
-						if (!success) break;
+						if (!success)
+							break;
 					}
 				}
 			}
@@ -58,15 +60,16 @@ public class Field extends Pane {
 			System.out.println("ERROR: Unable to initialize field\nExiting program");
 			System.exit(0);
 		}
-		
+
 		if (Configuration.isShowPlayerHitboxVisualization())
 			PlayerController.initializePlayerHitboxVisualization();
-		
+
 		// Optional obstacle visualization
 		if (Configuration.isShowObstacleGridPosition())
 			obstacles.initializeObstacleGridVisualization();
 
-		if (controller.containsEnemies()) controller.updatePath();
+		if (controller.containsEnemies())
+			controller.initializePaths();
 	}
 
 	// Sets up the checkerboard background
@@ -88,12 +91,12 @@ public class Field extends Pane {
 		Rectangle border = new Rectangle();
 		border.setX(Configuration.getVisualSquareSize() / 2);
 		border.setY(Configuration.getVisualSquareSize() / 2);
-		border.setWidth(Configuration.getWindowSizeWidth() - Configuration.getVisualSquareSize());
-		border.setHeight(Configuration.getWindowSizeHeight() - Configuration.getVisualSquareSize());
-		border.setStroke(Color.CRIMSON);
+		border.setWidth(Configuration.getWindowSizeWidth() -
+		Configuration.getVisualSquareSize());
+		border.setHeight(Configuration.getWindowSizeHeight() -
+		Configuration.getVisualSquareSize()); border.setStroke(Color.CRIMSON);
 		border.setStrokeWidth(Configuration.getVisualSquareSize());
-		border.setFill(Color.TRANSPARENT);
-		background.add(border);
+		border.setFill(Color.TRANSPARENT); background.add(border);
 
 		return background;
 	}
@@ -122,23 +125,23 @@ public class Field extends Pane {
 			Configuration.setRefreshToggle(true);
 		}
 	}
-	
+
 	public Player getPlayer() {
 		return player;
 	}
-	
+
 	public Target getTarget() {
 		return target;
 	}
-	
+
 	public Grid getGrid() {
 		return grid;
 	}
-	
+
 	public ComputerController getController() {
 		return controller;
 	}
-	
+
 	public ObstacleList getObstacles() {
 		return obstacles;
 	}

@@ -2,7 +2,7 @@ package org.openjfx.PathfindingSimulation;
 
 public class Configuration {
 	// Number of enemies
-	private static final int ENEMY_NUMBER = 1;
+	private static int enemyNumber = 1;
 
 	// Number of obstacles on the field
 	private static final int MAX_OBSTACLES = 25;
@@ -39,6 +39,7 @@ public class Configuration {
 	private static final int WIN = 2;
 
 	// Visualization settings
+	// Flickers very quickly with path refreshing
 	private static final boolean SHOW_PATH_VISUALIZATION = false;
 	private static final boolean SHOW_OBSTACLE_GRID_POSITION = false;
 	private static final boolean SHOW_PLAYER_HITBOX_VISUALIZATION = false;
@@ -48,9 +49,6 @@ public class Configuration {
 	// Pathfinding activation
 	private static final boolean PATHFINDING_ACTIVE = true;
 	
-	// Frequency of path refresh
-	private static final int MAX_PIXELS_BEFORE_PATH_REFRESH = 200;
-	
 	// Max field initialization attempts
 	private static final int ATTEMPT_LIMIT = 10;
 
@@ -58,7 +56,11 @@ public class Configuration {
 	private static boolean refreshToggle = true;
 	
 	public static int getEnemyNumber() {
-		return ENEMY_NUMBER;
+		return enemyNumber;
+	}
+	
+	public static void setEnemyNumber(int value) {
+		enemyNumber = value;
 	}
 
 	public static int getMaxObstacles() {
@@ -139,10 +141,6 @@ public class Configuration {
 
 	public static boolean isPathfindingActive() {
 		return PATHFINDING_ACTIVE;
-	}
-
-	public static int getMaxPixelsBeforePathRefresh() {
-		return MAX_PIXELS_BEFORE_PATH_REFRESH;
 	}
 	
 	public static int getAttemptLimit() {

@@ -2,14 +2,17 @@ package org.openjfx.PathfindingSimulation;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javafx.animation.AnimationTimer;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
 public class MainApplication extends Application {
@@ -17,8 +20,12 @@ public class MainApplication extends Application {
 	private static final int LOSE = 1;
 	private static final int WIN = 2;
 	
+	private boolean delayTasks = false;
+	
 	// List of keys currently pressed
 	static Set<KeyCode> keysPressed = ConcurrentHashMap.newKeySet();
+	
+	ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
 		
     @Override
     public void start(Stage primaryStage) {
@@ -44,7 +51,23 @@ public class MainApplication extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
         
-     // Player movement loop
+        scheduler.scheduleAtFixedRate(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                	if (!delayTasks) {
+                	    Platform.runLater(() -> {
+		            		gameField.getController().refreshPaths();
+		                    gameField.getController().refreshVisualizations();
+                	    });
+                	}
+                } catch (Exception e) {
+                    e.printStackTrace(); // Log or handle the exception appropriately
+                }
+            }
+        }, 0, 10, TimeUnit.MILLISECONDS);
+        
+        // Player movement loop
         new AnimationTimer() {
             private long lastTime = 0;
             
@@ -71,14 +94,20 @@ public class MainApplication extends Application {
                         case 0:
                             break;
                         case LOSE:
+                        	delayTasks = true;
                         	PlayerController.clearMomentum();
+                        	Configuration.setEnemyNumber(1);
                             gameField.initializeField();
                             //gameMenu.incrementDeaths();
+                            delayTasks = false;
                             break;
                         case WIN:
+                        	delayTasks = true;
                         	PlayerController.clearMomentum();
+                        	Configuration.setEnemyNumber(Configuration.getEnemyNumber() + 1);
                             gameField.initializeField();
                             //gameMenu.incrementScore();
+                            delayTasks = false;
                             break;
                         default:
                             break;
@@ -88,8 +117,11 @@ public class MainApplication extends Application {
 				if (gameField.getController().updateComputerPosition(timeStep)) {
 					for (Enemy enemy : gameField.getController().getEnemies()) {
 						if (gameField.getPlayer().getBoundsInParent().intersects(enemy.getBoundsInParent())) {
+							delayTasks = true;
 							PlayerController.clearMomentum();
+							Configuration.setEnemyNumber(1);
                             gameField.initializeField();
+                            delayTasks = false;
 						}
 					}
 				}
@@ -97,6 +129,13 @@ public class MainApplication extends Application {
                 lastTime = now;
             }
         }.start();
+    }
+    
+    @Override
+    public void stop() {
+        if (scheduler != null && !scheduler.isShutdown()) {
+            scheduler.shutdownNow(); // Attempt to stop all actively executing tasks
+        }
     }
 
     public static void main(String[] args) {

@@ -10,12 +10,11 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 
 public class ComputerController {
-	List<Enemy> enemies = new ArrayList<Enemy>();
-	static Player player;
-	static Target target;
+	private List<Enemy> enemies = new ArrayList<Enemy>();
+	private static Player player;
 	
-	static Pane pane;
-	static Grid grid;
+	private static Pane pane;
+	private static Grid grid;
 	
 	ComputerController(Pane pane, Grid grid, Player player) {
 		ComputerController.player = player;
@@ -67,53 +66,85 @@ public class ComputerController {
     	
     	return !failedAttempt;
 	}
-
-	public void updatePath() {
-		GridNode playerNode = grid.getNode(player.getXGridPos(), player.getYGridPos());
+	
+	public void initializePaths() {
 		for (Enemy enemy : enemies) {
+			GridNode playerNode = grid.getNode(player.getXGridPos(), player.getYGridPos());
 			GridNode enemyPos = new GridNode(enemy.getXGridPos(), enemy.getYGridPos(), true);
 			enemy.setPath(grid.findPath(enemyPos, playerNode));
-		}
-		
-		if (Configuration.isShowPathVisualization()) {
-			initializePathVisualization();
+			
+			if (Configuration.isShowPathVisualization()) {
+				initializePathVisualization(enemy);
+			}
 		}
 	}
 
-	public void initializePathVisualization() {
-		for (Enemy enemy : enemies) {
-			// Aborts if no path exists
-			if (enemy.getPath().isEmpty())
-				return;
+	public void updatePath(Enemy enemy) {
+		GridNode playerNode = grid.getNode(player.getXGridPos(), player.getYGridPos());
+		GridNode enemyPos = new GridNode(enemy.getXGridPos(), enemy.getYGridPos(), true);
+		enemy.setPath(grid.findPath(enemyPos, playerNode));
+	}
 	
-			// Remove previous path visualization
-			pane.getChildren().removeIf(node -> "pathNode".equals(node.getUserData()));
 
-			// Dot Visualization
-			if (Configuration.isDotVisualization()) {
-				for (GridNode node : enemy.getPath()) {
-					Circle point = new Circle();
-					point.setRadius(Configuration.getTargetRadius() / 3);
-					point.setFill(Color.GREEN);
-					point.setCenterX(node.getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum() + enemy.getBorderWidth());
-					point.setCenterY(node.getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum() + enemy.getBorderWidth());
-					point.setUserData("pathNode");
-					pane.getChildren().add(point);
-				}
-			}
+	private int counter = 0;
 	
-			// Rectangle visualization
-			if (Configuration.isRectangleVisualization()) {
-				for (GridNode node : enemy.getPath()) {
-					Rectangle rect = new Rectangle();
-					rect.setWidth(Configuration.getVisualSquareSize());
-					rect.setHeight(Configuration.getVisualSquareSize());
-					rect.setFill(Color.GREEN);
-					rect.setX(node.getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-					rect.setY(node.getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
-					rect.setUserData("pathNode");
-					pane.getChildren().add(rect);
-				}
+	public void refreshPaths() {
+		if (enemies.size() == 0) return;
+		
+		if (counter >= enemies.size()) {
+			counter = 0;
+		}
+		
+		updatePath(enemies.get(counter));
+		if (enemies.get(counter).getPath().size() > 0) enemies.get(counter).getPath().remove(0);
+		++counter;
+	}
+	
+	private int visualizationCounter = 0;
+	
+	public void refreshVisualizations() {
+	    if (!Configuration.isShowPathVisualization()) return;
+	    
+        if (visualizationCounter < enemies.size()) {
+            initializePathVisualization(enemies.get(visualizationCounter));
+            ++visualizationCounter;
+        } else {
+            visualizationCounter = 0;
+        }
+	}
+	
+	public void initializePathVisualization(Enemy enemy) {
+		// Aborts if no path exists
+		if (enemy.getPath().isEmpty())
+			return;
+
+		// Remove previous path visualization
+		pane.getChildren().removeIf(node -> "pathNode".equals(node.getUserData()));
+
+		// Dot Visualization
+		if (Configuration.isDotVisualization()) {
+			for (GridNode node : enemy.getPath()) {
+				Circle point = new Circle();
+				point.setRadius(Configuration.getTargetRadius() / 3);
+				point.setFill(Color.GREEN);
+				point.setCenterX(node.getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum() + enemy.getBorderWidth());
+				point.setCenterY(node.getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum() + enemy.getBorderWidth());
+				point.setUserData("pathNode");
+				pane.getChildren().add(point);
+			}
+		}
+
+		// Rectangle visualization
+		if (Configuration.isRectangleVisualization()) {
+			for (GridNode node : enemy.getPath()) {
+				Rectangle rect = new Rectangle();
+				rect.setWidth(Configuration.getVisualSquareSize());
+				rect.setHeight(Configuration.getVisualSquareSize());
+				rect.setFill(Color.GREEN);
+				rect.setX(node.getXPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
+				rect.setY(node.getYPos() * Configuration.getVisualSquareSize() / Configuration.getPathGridSquareNum());
+				rect.setUserData("pathNode");
+				pane.getChildren().add(rect);
 			}
 		}
 	}
@@ -149,30 +180,13 @@ public class ComputerController {
 			
 			enemy.updateGridPos();
 			
-			// Refreshes if the refresh pixel threshold or the next node has been reached
-			if (enemy.getCumulativePixelsMoved() >= Configuration.getMaxPixelsBeforePathRefresh() && !(hasReachedX && hasReachedY)) {
-				enemy.setCumulativePixelsMoved(0.0);
-				
-				updatePath();
-				
-				if (enemy.getPath().isEmpty()) {
-					returnValue = false;
-					continue; // No path to follow
-				}
-				
-				// Necessary to prevent sudden direction shift
-				if (enemy.getPath().size() > 0) enemy.getPath().remove(0);
-			} else if (hasReachedX && hasReachedY) {
+			if (hasReachedX && hasReachedY) {
 				if (enemy.getPath().size() > 1) {
 					enemy.setXGridPos(enemy.getPath().get(1).getXPos());
 					enemy.setYGridPos(enemy.getPath().get(1).getYPos());
 				}
-				updatePath();
+				updatePath(enemy);
 			}
-			
-			// Optional path visualization
-			if (Configuration.isShowPathVisualization())
-				initializePathVisualization();
 			
 			if (Configuration.isShowPlayerHitboxVisualization())
 				PlayerController.initializePlayerHitboxVisualization();
